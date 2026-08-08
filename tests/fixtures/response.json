@@ -1,0 +1,60 @@
+{
+  "r1": {
+    "c5": {
+      "url": "https://www.pmu.fr/turf/01012025/r1/c5",
+      "commentaire": "Course de test A",
+      "total_prob": [0.45, 1.0],
+      "horses": [
+        {
+          "nom": "Alpha",
+          "nom_query": "ALPHA",
+          "numPmu_query": "1",
+          "cribles": "premier espoir",
+          "prob": [0.2, 0.3],
+          "rel_prob": [44, 30]
+        },
+        {
+          "nom": "Beta",
+          "nom_query": "BETA",
+          "numPmu_query": "2",
+          "cribles": "qualitatif moyen",
+          "prob": [0.15, 0.4],
+          "rel_prob": [33, 40]
+        },
+        {
+          "nom": "Chi",
+          "nom_query": "CHI",
+          "numPmu_query": "3",
+          "cribles": "outsider",
+          "prob": [0.1, 0.3],
+          "rel_prob": [22, 30]
+        }
+      ]
+    }
+  },
+  "r2": {
+    "c7": {
+      "url": "https://www.pmu.fr/turf/01012025/r2/c7",
+      "commentaire": "Course de test B",
+      "total_prob": [0.3, 1.0],
+      "horses": [
+        {
+          "nom": "Gamma",
+          "nom_query": "GAMMA",
+          "numPmu_query": "1",
+          "cribles": "qualitatif",
+          "prob": [0.2, 0.85],
+          "rel_prob": [66, 85]
+        },
+        {
+          "nom": "Delta",
+          "nom_query": "DELTA",
+          "numPmu_query": "2",
+          "cribles": "long shot",
+          "prob": [0.1, 0.15],
+          "rel_prob": [33, 15]
+        }
+      ]
+    }
+  }
+}
