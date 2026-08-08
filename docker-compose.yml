@@ -1,0 +1,12 @@
+services:
+  canasson:
+    build: .
+    image: canasson/canasson:1.0.0
+    container_name: canasson
+    volumes:
+      - ./data:/app/data          # données runtime (data_train/test/cturf/gain + artefacts)
+      - ${SSH_DIR:-~/.ssh}:/root/.ssh:ro   # clé de déploiement GitHub Pages (optionnelle)
+    environment:
+      - GIT_REPO_URL=${GIT_REPO_URL:-git@github.com:mylittlecanasson/mylittlecanasson.github.io.git}
+    # `run` = pipeline complet une fois, puis le conteneur s'arrête proprement.
+    command: ["run"]
