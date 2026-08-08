@@ -25,7 +25,6 @@ logger = logging.getLogger("canasson.evaluate.roi")
 _PMU_PERF_URL = "https://online.turfinfo.api.pmu.fr/rest/client/61/programme/{day}/{reunion}/{circuit}/performances-detaillees/pretty"
 _PMU_RAPPORTS_URL = "https://online.turfinfo.api.pmu.fr/rest/client/61/programme/{day}/{reunion}/{circuit}/rapports-definitifs?specialisation=INTERNET&combinaisonEnTableau=true"
 _PMU_INCIDENTS_URL = "https://online.turfinfo.api.pmu.fr/rest/client/61/programme/{day}/{reunion}/{circuit}?specialisation=INTERNET&combinaisonEnTableau=true"
-_PMU_PRONOS_URL = "https://online.turfinfo.api.pmu.fr/rest/client/61/programme/{day}/{reunion}/{circuit}/pronostics-detailles"
 
 
 @dataclass
@@ -44,15 +43,6 @@ def _cached_get_json(url: str, cache_path: Path):
     data = requests.get(url, timeout=config.PMU_TIMEOUT).json()
     cache_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
     return data
-
-
-def _cached_get_text(url: str, cache_path: Path) -> str:
-    """GET texte avec cache (les pronostics-détaillés sont stockés en chaîne)."""
-    if cache_path.is_file():
-        return json.load(open(cache_path, encoding="utf-8"))
-    text = requests.get(url, timeout=config.PMU_TIMEOUT).text
-    cache_path.write_text(json.dumps(text, ensure_ascii=False, indent=4), encoding="utf-8")
-    return text
 
 
 def _race_outcome(response_race: dict, date_dir: Path) -> dict:
@@ -192,19 +182,14 @@ def evaluate_day(datestr: str) -> DayResult | None:
         # aucun résultat connu → la course n'a jamais démarré
         row_html = f"<tr><td>{horse_label}</td><td>0</td><td>{link}</td></tr>"
     else:
-        # le cheval a couru sans être placé → on perd le ticket (5 €)
-        try:
-            day, reunion, circuit = url.split("/")[-3:]
-            base_path = date_dir / f"{day}{reunion.upper()}{circuit.upper()}"
-            text = _cached_get_text(
-                _PMU_PRONOS_URL.format(day=day, reunion=reunion.upper(), circuit=circuit.upper()),
-                Path(str(base_path) + "pronostics_detailles.json"),
-            )
-            if text.strip():
-                roi -= config.TICKET_VALUE_CENTS
-                row_html = f"<tr><td>{horse_label}</td><td>-{config.TICKET_VALUE_CENTS}</td><td>{link}</td></tr>"
-        except Exception as exc:
-            logger.debug("pronostics-détaillés indisponibles (%s)", exc)
+        # le cheval a couru sans être placé → on perd le ticket (5 €), sauf si la
+        # course n'a jamais démarré (remboursé, 0). Le signal « la course a
+        # couru » = rapports définitifs de CETTE course (pas le texte des
+        # pronostics : l'API les renvoie vides en HTTP 204 sur les anciennes
+        # dates alors que la course a bien eu lieu — sinon on oublierait la perte).
+        if _race_outcome(race, date_dir):
+            roi -= config.TICKET_VALUE_CENTS
+            row_html = f"<tr><td>{horse_label}</td><td>-{config.TICKET_VALUE_CENTS}</td><td>{link}</td></tr>"
 
     logger.info("%s: cheval %s → ROI %+d", datestr, horse_label, roi)
     return DayResult(date=datestr, roi=roi, row_html=row_html)
