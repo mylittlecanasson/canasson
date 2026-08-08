@@ -1,0 +1,22 @@
+# Données runtime (volume docker)
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets & config locale
+.env
+*.pem
+id_rsa*
+*.key
+
+# Artefacts
+*.png
+*.log
