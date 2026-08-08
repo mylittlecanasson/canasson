@@ -23,6 +23,19 @@ logger = logging.getLogger("canasson.model.features")
 # Features exclues de la sélection (identiques à l'application d'origine).
 EXCLUDED_FEATURES = (re.compile(r"paris_.*"), re.compile(r"^incident.*"))
 
+# Colonnes qui ne décrivent plus la course AVANT le départ mais SON RÉSULTAT
+# (ordre d'arrivée, temps, incidents, commentaire après course, cotes finales).
+# Le programme PMU les fournit une fois la course courue : présentes dans le
+# query d'une date passée (backtest), elles fuiteraient le résultat dans
+# l'apprentissage. On les retire donc du query, ce qui rend un backtest
+# équivalent à un run « demain » (aucune information post-course disponible).
+RESULT_COLUMNS = re.compile(
+    r"^(ordreArrivee(_\d+(_\d+)?)?|arriveeDefinitive|isArriveeDefinitive|"
+    r"commentaireApresCourse.*|indicateurEvenementArrivee.*|"
+    r"detailsIndicateurEvenementArrivee.*|incident.*|tempsObtenu|"
+    r"dureeCourse|reductionKilometrique|dernierRapport(Direct|Reference)_.*)$"
+)
+
 
 def get_factors(n: int) -> list[int]:
     """Retourne tous les diviseurs entiers de n (grille quasi-carrée)."""
@@ -34,8 +47,11 @@ def _filter(df: pd.DataFrame) -> pd.DataFrame:
     # Types mixtes possibles dans les CSV (un « nan » en chaîne rend toute la
     # colonne « object ») → on force le numérique avant les comparaisons ; les
     # valeurs non numériques deviennent NaN et la ligne est écartée (>= NaN = False).
+    # Une colonne peut manquer (query « demain » sans ordreArrivee) → on ne
+    # coerce que les colonnes réellement présentes.
     for column in ("nombreDeclaresPartants", "distance", "ordreArrivee"):
-        df[column] = pd.to_numeric(df[column], errors="coerce")
+        if column in df.columns:
+            df[column] = pd.to_numeric(df[column], errors="coerce")
     return df[
         (df["discipline"] == config.DISCIPLINE)
         & (df["nombreDeclaresPartants"] >= config.MIN_DECLARES_PARTANTS)
@@ -73,11 +89,25 @@ def load_train(days: int = config.TRAIN_DAYS, ref_date: date | None = None) -> p
 
 
 def load_query(date_query: str) -> pd.DataFrame:
-    """Charge et filtre la course cible depuis data_test/<date>/query.csv."""
+    """Charge et filtre la course cible depuis data_test/<date>/query.csv.
+
+    Les colonnes de résultat (ordre d'arrivée, temps, incidents…) sont retirées
+    si le query concerne une date déjà courue : sans cela un backtest verrait le
+    résultat de la course cible et « prédirait » les gagnants par simple lecture
+    (fuite d'information — le run « demain » n'a jamais ces colonnes).
+    """
     path = config.DATA_TEST_DIR / date_query / "query.csv"
     if not path.is_file():
         raise FileNotFoundError(f"Requête introuvable : {path}")
-    return _filter(pd.read_csv(path)).reset_index(drop=True)
+    df = _filter(pd.read_csv(path, low_memory=False)).reset_index(drop=True)
+    leaked = [column for column in df.columns if RESULT_COLUMNS.match(column)]
+    if leaked:
+        logger.info(
+            "%d colonne(s) de résultat retirée(s) du query %s : %s",
+            len(leaked), date_query, leaked,
+        )
+        df = df.drop(columns=leaked)
+    return df
 
 
 def encode(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, LabelEncoder]]:

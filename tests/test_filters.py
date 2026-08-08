@@ -7,7 +7,14 @@ import pandas as pd
 import pytest
 
 from canasson import config
-from canasson.model.features import _filter, build_target, get_factors, load_train
+from canasson.model.features import (
+    RESULT_COLUMNS,
+    _filter,
+    build_target,
+    get_factors,
+    load_query,
+    load_train,
+)
 
 
 def test_get_factors() -> None:
@@ -57,7 +64,56 @@ def test_build_target_top_place() -> None:
     assert target.tolist() == expected
 
 
-def test_load_train_ref_date_pas_de_fuite(tmp_path, monkeypatch) -> None:
+def test_filter_sans_ordre_arrivee() -> None:
+    """Query « demain » sans ordreArrivee : le filtre ne doit pas coincer."""
+    df = pd.DataFrame(
+        {"discipline": ["PLAT"], "nombreDeclaresPartants": [10], "distance": [1800]}
+    )
+    kept = _filter(df)
+    assert len(kept) == 1
+
+
+def test_result_columns_detecte_toute_la_fuite() -> None:
+    """Chaque colonne de résultat du programme couru est reconnue et retirée."""
+    leaked = [
+        "ordreArrivee",
+        "ordreArrivee_0_0",
+        "ordreArrivee_8_1",
+        "arriveeDefinitive",
+        "isArriveeDefinitive",
+        "commentaireApresCourse_texte",
+        "commentaireApresCourse_source",
+        "indicateurEvenementArriveeProvisoire",
+        "detailsIndicateurEvenementArriveeProvisoire",
+        "incident",
+        "incidents_0_type",
+        "incidents_0_numeroParticipants_1",
+        "tempsObtenu",
+        "dureeCourse",
+        "reductionKilometrique",
+        "dernierRapportDirect_rapport",
+        "dernierRapportDirect_favoris",
+        "dernierRapportReference_nombreIndicateurTendance",
+    ]
+    for column in leaked:
+        assert RESULT_COLUMNS.match(column), f"non détecté : {column}"
+
+
+def test_load_query_supprime_les_resultats(tmp_path, monkeypatch) -> None:
+    """Backtest : load_query retire le résultat du jour couru (équivalent « demain »)."""
+    test_dir = tmp_path / "data_test"
+    (test_dir / "01082026").mkdir(parents=True)
+    monkeypatch.setattr(config, "DATA_TEST_DIR", test_dir)
+
+    (test_dir / "01082026" / "query.csv").write_text(
+        "nom,ordreArrivee,ordreArrivee_0_0,dernierRapportDirect_rapport,numPmu,discipline,nombreDeclaresPartants,distance\n"
+        "cheval,1,8,2.1,8,PLAT,10,1800\n"
+    )
+    df = load_query("01082026")
+    assert "ordreArrivee" not in df.columns
+    assert "ordreArrivee_0_0" not in df.columns
+    assert "dernierRapportDirect_rapport" not in df.columns
+    assert "nom" in df.columns
     """Backtest : load_train(ref_date) n'utilise jamais les jours postérieurs à ref_date."""
     train_dir = tmp_path / "data_train"
     train_dir.mkdir(parents=True)
