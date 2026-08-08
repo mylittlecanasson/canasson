@@ -59,12 +59,14 @@ def load_train(days: int = config.TRAIN_DAYS, ref_date: date | None = None) -> p
         strday = (today - timedelta(days=offset)).strftime("%d%m%Y")
         path = config.DATA_TRAIN_DIR / (strday + ".csv")
         if not path.is_file():
-            logger.warning("ERROR: %s", path)
+            logger.warning("Jour d'apprentissage manquant : %s", path)
             continue
         try:
-            frames.append(_filter(pd.read_csv(path)))
+            # low_memory=False : dtype inféré sur la colonne entière (sinon
+            # DtypeWarning + types mixtes par chunks) ; `_filter` coerce ensuite.
+            frames.append(_filter(pd.read_csv(path, low_memory=False)))
         except Exception as exc:
-            logger.warning("Incompatible type while reading %s (%s)", path, exc)
+            logger.warning("Jour ignoré pour l'apprentissage (%s) : %s", path, exc)
     if not frames:
         raise FileNotFoundError(f"Aucune donnée d'apprentissage dans {config.DATA_TRAIN_DIR}")
     return pd.concat(frames, ignore_index=True)
@@ -140,5 +142,6 @@ def select_features(
     if "nom" not in pertinent_index:
         pertinent_index.insert(0, "nom")
 
-    logger.info("pertinent_index (%d): %s", len(pertinent_index), pertinent_index)
+    logger.info("Sélection de %d feature(s) corrélées.", len(pertinent_index))
+    logger.debug("pertinent_index : %s", pertinent_index)
     return pertinent_index

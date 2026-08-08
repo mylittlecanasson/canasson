@@ -176,7 +176,8 @@ def run(date_str: str | None = None) -> None:
     total = sum(sum(cm))
     accuracy = (cm[0][0] + cm[1][1]) / total
     specificity = cm[0][0] / (cm[0][0] + cm[0][1])
-    logger.info("Accuracy: %.3f -- Specificity: %.3f -- Confusion: %s", accuracy, specificity, cm)
+    logger.info("Accuracy: %.3f | Spécificité: %.3f", accuracy, specificity)
+    logger.debug("Matrice de confusion:\n%s", cm)
 
     ConfusionMatrixDisplay.from_estimator(model, test_x, test_y)
     plt.savefig(config.DATA_TEST_DIR / date_query / "confusionmatrix.png", bbox_inches="tight")

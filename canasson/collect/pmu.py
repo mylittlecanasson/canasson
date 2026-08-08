@@ -79,13 +79,21 @@ def _fetch_json(url: str, attempts: int = 3) -> dict:
 
     Renvoie un dict vide si l'API reste inaccessible — le jour est alors
     ignoré, le pipeline continue (philosophie « skip gracieux »).
+
+    Un corps vide (HTTP 204) n'est pas une erreur : c'est le comportement
+    normal de `pronostics-detailles` sur les dates anciennes (plus de
+    pronostics stockés) — loggé en DEBUG, pas en WARNING.
     """
     for attempt in range(1, attempts + 1):
         try:
             # timeout : l'API peut accepter la connexion puis ne plus répondre
             # (throttle) — sans timeout, urlopen resterait suspendu indéfiniment.
             with urlopen(url, timeout=config.PMU_TIMEOUT) as handle:
-                return json.loads(handle.read().decode())
+                raw = handle.read()
+            if not raw:
+                logger.debug("pas de contenu (HTTP 204) pour %s", url)
+                return {}
+            return json.loads(raw.decode())
         except Exception:
             if attempt == attempts:
                 logger.warning("API PMU indisponible pour %s (%d tentative(s)).", url, attempts)
@@ -137,7 +145,7 @@ def _download_day(strday: str, context: str) -> None:
             datapronodetaille = _fetch_json(urlpronodetaille, attempts=1)
             time.sleep(config.PMU_PAUSE)
             if "participants" not in dataparticipants:
-                logger.warning("error with: %s/R%s/C%s (participants indisponibles)", strday, strreunion, strcourse)
+                logger.warning("participants indisponibles : %s/R%s/C%s", strday, strreunion, strcourse)
                 continue
 
             for participant in dataparticipants["participants"]:

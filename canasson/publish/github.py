@@ -52,14 +52,14 @@ def run(no_push: bool = False) -> None:
     try:
         Repo.clone_from(config.GIT_REPO_URL, config.WORKTREE_DIR)
     except GitError as exc:
-        logger.error("Failed to clone repository: %s", exc)
-        logger.warning("Dépôt GitHub Pages indisponible, publication ignorée.")
+        # Skip gracieux : pas de clé SSH ou dépôt indisponible — on continue.
+        logger.warning("Clone du dépôt GitHub Pages impossible, publication ignorée (%s).", exc)
         return
 
     try:
         _copy_artifacts()
     except OSError as exc:
-        logger.error("Artefacts manquants, publication ignorée (%s).", exc)
+        logger.warning("Artefacts manquants, publication ignorée (%s).", exc)
         return
 
     if no_push:
@@ -69,4 +69,5 @@ def run(no_push: bool = False) -> None:
     try:
         _git_push()
     except GitError as exc:
-        logger.error("Error while pushing code: %s", exc)
+        # Le push est une vraie action qui échoue : c'est une erreur, pas un skip.
+        logger.error("Échec du push vers %s : %s", config.GIT_REPO_URL, exc)

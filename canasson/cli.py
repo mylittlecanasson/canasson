@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import warnings
 
 from canasson import __version__, config
 from canasson.collect import canalturf, pmu
@@ -22,8 +23,16 @@ logger = logging.getLogger("canasson.cli")
 def _configure_logging(verbose: bool) -> None:
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
-        format="%(levelname)s %(name)s: %(message)s",
+        format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
     )
+    # Bruit des dépendances inutile au niveau INFO (fontes matplotlib, urllib3,
+    # PIL…) : la signalétique utile provient de canasson.*.
+    for noisy_logger in ("matplotlib", "urllib3", "PIL", "numba", "h5py"):
+        logging.getLogger(noisy_logger).setLevel(logging.WARNING)
+    # DtypeWarning pandas (colonnes à types mixtes) : normal sur les CSV PMU,
+    # `load_train` lit en low_memory=False et coerce déjà — on masque le bruit.
+    warnings.filterwarnings("ignore", message=".*mixed types.*")
 
 
 def cmd_collect(args: argparse.Namespace) -> int:
