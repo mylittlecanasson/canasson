@@ -21,8 +21,17 @@ def render(results: list[DayResult]) -> None:
     maincase += rows + "</table>"
     maincase = '<img src="/candle.png" alt="candle chart"/>' + maincase
 
+    # Provenance : config du jour le plus récent évalué (snapshot du predict),
+    # sinon réglages courants — jamais d'erreur « no configuration ».
+    settings = config.settings_for_date(results[-1].date) if results else config.current_settings()
+    badge = config.config_badge_html(settings)
+
     template = config.TEMPLATES_DIR / "bethistory-template.html"
-    html = template.read_text(encoding="utf-8").replace("{%MAINCASE%}", maincase)
+    html = (
+        template.read_text(encoding="utf-8")
+        .replace("{%CONFIGCASE%}", badge)
+        .replace("{%MAINCASE%}", maincase)
+    )
 
     config.ARTIFACT_BETHISTORY.parent.mkdir(parents=True, exist_ok=True)
     config.ARTIFACT_BETHISTORY.write_text(html, encoding="utf-8")

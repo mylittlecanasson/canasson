@@ -93,6 +93,7 @@ def run() -> None:
     )
 
     main_article = ""
+    latest_displayed = None  # date la plus récente réellement affichée (provenance)
     for date_str in datedirs[: config.HISTORY_DAYS_SITE]:
         try:
             data = json.load(open(config.DATA_TEST_DIR / date_str / "response.json", encoding="utf-8"))
@@ -108,11 +109,19 @@ def run() -> None:
             except Exception as exc:
                 logger.debug("Pas d'infos canalturf pour %s (%s)", date_str, exc)
 
-        main_article += _article(date_str, data, data_infos)
+        article = _article(date_str, data, data_infos)
+        if article:
+            latest_displayed = date_str
+        main_article += article
+
+    # Provenance : config du jour le plus récent affiché (snapshot du predict),
+    # sinon réglages courants — jamais d'erreur « no configuration ».
+    settings = config.settings_for_date(latest_displayed) if latest_displayed else config.current_settings()
+    badge = config.config_badge_html(settings)
 
     index_html = (
         config.TEMPLATES_DIR / "index_template.html"
-    ).read_text(encoding="utf-8").replace("{%MAINCASE%}", main_article)
+    ).read_text(encoding="utf-8").replace("{%CONFIGCASE%}", badge).replace("{%MAINCASE%}", main_article)
 
     config.ARTIFACT_INDEX.parent.mkdir(parents=True, exist_ok=True)
     config.ARTIFACT_INDEX.write_text(index_html, encoding="utf-8")

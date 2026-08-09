@@ -61,14 +61,19 @@ def _filter(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
 
-def load_train(days: int = config.TRAIN_DAYS, ref_date: date | None = None) -> pd.DataFrame:
+def load_train(days: int | None = None, ref_date: date | None = None) -> pd.DataFrame:
     """Charge et filtre les `days` jours d'apprentissage précédant `ref_date`.
 
     Par défaut (run quotidien), on part d'aujourd'hui — comportement d'origine.
     Pour prédire une date passée (backtest), on part de cette date afin de
     n'utiliser que les données disponibles **au moment** de la prédiction
     (pas de fuite d'information : les jours postérieurs sont exclus).
+
+    `days=None` → `config.TRAIN_DAYS` lu **à l'appel** (et non figé à l'import) :
+    la fenêtre configurée via le dashboard est bien respectée.
     """
+    if days is None:
+        days = config.TRAIN_DAYS
     frames = []
     today = ref_date or date.today()
     for offset in range(days, 0, -1):

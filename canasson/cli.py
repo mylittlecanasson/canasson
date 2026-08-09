@@ -11,6 +11,7 @@ import sys
 import warnings
 
 from canasson import __version__, config
+from canasson import config_ui
 from canasson.collect import canalturf, pmu
 from canasson.evaluate import run as evaluate_run
 from canasson.model import predict
@@ -93,6 +94,12 @@ def cmd_rerun(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_config(args: argparse.Namespace) -> int:
+    """Dashboard web de configuration des réglages (bloquant, Ctrl+C pour arrêter)."""
+    config_ui.run(host=args.host, port=args.port)
+    return 0
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     """Pipeline complet : collect → predict → evaluate → site → publish."""
     pmu.run()
@@ -142,6 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("date", nargs="?", default=None,
                        help="date cible de prédiction au format DDMMYYYY (défaut : demain)")
 
+    p_config = sub.add_parser("config", help="dashboard web de configuration des réglages")
+    p_config.add_argument("--host", default="0.0.0.0",
+                          help="adresse d'écoute (défaut : 0.0.0.0)")
+    p_config.add_argument("--port", type=int, default=8090,
+                          help="port d'écoute (défaut : 8090)")
+
     return parser
 
 
@@ -154,12 +167,17 @@ _COMMANDS = {
     "rerun": cmd_rerun,
     "backfill": cmd_backfill,
     "run": cmd_run,
+    "config": cmd_config,
 }
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     _configure_logging(args.verbose)
+    # Applique la configuration sauvegardée (défauts si aucun fichier) avant
+    # toute commande : collect, predict, evaluate, site, run… utilisent la
+    # fenêtre/les filtres configurés via le dashboard.
+    config.load_settings()
     try:
         return _COMMANDS[args.command](args)
     except KeyboardInterrupt:

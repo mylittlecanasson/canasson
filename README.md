@@ -75,6 +75,44 @@ canasson rerun DATE                  # rejoue une date puis recalcule le ROI
 canasson backfill [N]                # backtest : prédit les N derniers jours (défaut : 30)
 ```
 
+## Configuration des réglages
+
+Certains paramètres sont éditables avant le lancement via un **dashboard web** :
+fenêtre d'apprentissage, discipline, bornes de partants et de distance, cible
+des places, mise, jours affichés à l'accueil. Les **défauts sont les constantes
+d'origine** : sans fichier sauvegardé, le pipeline fonctionne exactement comme
+avant — aucune erreur « no configuration ».
+
+### Dashboard
+
+```bash
+docker compose --profile tools up config
+```
+
+Ouvrez **http://localhost:8090**, ajustez les valeurs puis **Enregistrer** — la
+configuration est sauvegardée dans `./data/config.json`. Le bouton
+« Restaurer les défauts » supprime le fichier. Le service est masqué du
+`docker compose up` par le profil `tools` : le pipeline « une fois puis arrêt »
+reste inchangé.
+
+### Lancer avec la configuration sauvegardée
+
+```bash
+docker compose run --rm canasson run
+```
+
+Toute sous-commande (`collect`, `predict`, `evaluate`, `site`, `backfill`…)
+applique la configuration sauvegardée au démarrage. Chaque prédiction mémorise
+la config utilisée dans `data_test/<date>/config.json`.
+
+### Provenance sur le site publié
+
+Le site (mylittlecanasson.github.io) affiche sur `index.html` et
+`bethistory.html` une **petite boîte cliquable** « ⚙️ Config : … » résumant la
+configuration dont proviennent les résultats (fenêtre, discipline, partants,
+distance, cible, mise, jours) — dépliée au clic. Elle reflète la config du jour
+le plus récent affiché (snapshot écrit au moment de la prédiction).
+
 ## Développement
 
 ```bash

@@ -10,3 +10,21 @@ services:
       - GIT_REPO_URL=${GIT_REPO_URL:-git@github.com:mylittlecanasson/mylittlecanasson.github.io.git}
     # `run` = pipeline complet une fois, puis le conteneur s'arrête proprement.
     command: ["run"]
+
+  # Dashboard de configuration des réglages (fenêtre d'apprentissage, filtres…).
+  # Masqué du `up` par défaut par le profil `tools` — à lancer explicitement :
+  #   docker compose --profile tools up config
+  # puis lancer le pipeline avec la config sauvegardée :
+  #   docker compose run --rm canasson run
+  config:
+    build: .
+    image: canasson/canasson:1.0.0
+    container_name: canasson-config
+    profiles: ["tools"]
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/app/data          # partage la même config sauvegardée (data/config.json)
+    environment:
+      - GIT_REPO_URL=${GIT_REPO_URL:-git@github.com:mylittlecanasson/mylittlecanasson.github.io.git}
+    command: ["config"]

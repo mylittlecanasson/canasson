@@ -190,4 +190,5 @@ def run(date_str: str | None = None) -> None:
 
     with open(config.DATA_TEST_DIR / date_query / "response.json", "w", encoding="utf-8") as handle:
         json.dump(todump, handle, ensure_ascii=False, indent=4)
+    config.save_snapshot(date_query)
     logger.info("response.json écrit pour %s (%d réunion(s)).", date_query, len(todump))

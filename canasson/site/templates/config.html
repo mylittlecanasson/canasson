@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration Canasson</title>
+<style>
+  :root{--bg:#f4f4f4;--card:#fff;--text:#1a1a1a;--muted:#666;--accent:#2b6cb0;--ok:#2f855a;--err:#c53030}
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#121212;--card:#1e1e1e;--text:#eee;--muted:#aaa;--accent:#63b3ed;--ok:#68d391;--err:#fc8181}
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:1.5rem}
+  main{max-width:640px;margin:0 auto;background:var(--card);padding:1.5rem 2rem;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  h1{font-size:1.25rem;margin:0 0 .25rem}
+  p.sub{color:var(--muted);font-size:.85rem;margin:0 0 1.25rem}
+  label{display:block;font-size:.85rem;font-weight:600;margin:1rem 0 .25rem}
+  input[type=number],select{width:100%;padding:.5rem;border:1px solid var(--muted);border-radius:6px;background:var(--card);color:var(--text);font-size:1rem}
+  .hint{color:var(--muted);font-size:.78rem;margin:.15rem 0 0}
+  .actions{display:flex;gap:.75rem;margin-top:1.5rem}
+  button{flex:1;padding:.6rem;border:0;border-radius:8px;font-size:1rem;cursor:pointer;font-weight:600}
+  button.save{background:var(--accent);color:#fff}
+  button.reset{background:transparent;color:var(--muted);border:1px solid var(--muted)}
+  #msg{display:none;margin-top:1rem;padding:.6rem .8rem;border-radius:8px;font-size:.9rem;white-space:pre-line}
+  #msg.ok{display:block;background:var(--ok);color:#fff}
+  #msg.err{display:block;background:var(--err);color:#fff}
+</style>
+</head>
+<body>
+<main>
+  <h1>⚙️ Configuration Canasson</h1>
+  <p class="sub">Réglez les paramètres avant de lancer le pipeline
+    (<code>docker compose run --rm canasson run</code>). Les défauts correspondent
+    à la philosophie d'origine&nbsp;; sans enregistrement, ils sont utilisés tels quels.</p>
+  <form id="form"></form>
+  <div class="actions">
+    <button type="button" class="save" id="save">Enregistrer</button>
+    <button type="button" class="reset" id="reset">Restaurer les défauts</button>
+  </div>
+  <div id="msg"></div>
+</main>
+<script>
+  "use strict";
+  const $ = (sel) => document.querySelector(sel);
+  let SPEC = [];
+  let SETTINGS = {};
+
+  function field(entry, value) {
+    let input;
+    if (entry.vtype === "str") {
+      const choices = entry.choices || [];
+      const opts = choices.map((c) =>
+        `<option value="${c}" ${String(c) === String(value) ? "selected" : ""}>${c}</option>`).join("");
+      const kept = (choices.some((c) => String(c) === String(value)))
+        ? "" : `<option value="${value}" selected>${value}</option>`;
+      input = `<select id="${entry.key}" name="${entry.key}">${kept}${opts}</select>`;
+    } else {
+      input = `<input id="${entry.key}" name="${entry.key}" type="number" ` +
+        `min="${entry.min}" max="${entry.max}" step="1" value="${value}">`;
+    }
+    return `<div><label for="${entry.key}">${entry.label}</label>` +
+      `${input}<p class="hint">${entry.hint || ""}</p></div>`;
+  }
+
+  function render() {
+    $("#form").innerHTML = SPEC.map((e) => field(e, SETTINGS[e.key])).join("");
+  }
+
+  function collect() {
+    const out = {};
+    for (const e of SPEC) {
+      const el = document.getElementById(e.key);
+      out[e.key] = e.vtype === "str" ? el.value : Number(el.value);
+    }
+    return out;
+  }
+
+  function message(text, kind) {
+    const el = $("#msg");
+    el.textContent = text;
+    el.className = kind;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = ""; }, 5000);
+  }
+
+  async function load() {
+    const spec = await fetch("/api/spec").then((r) => r.json());
+    const cfg = await fetch("/api/config").then((r) => r.json());
+    SPEC = spec.spec || [];
+    SETTINGS = cfg.settings || {};
+    render();
+  }
+
+  $("#save").addEventListener("click", async () => {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(collect()),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      SETTINGS = data.saved;
+      message("Configuration enregistrée ✓", "ok");
+    } else {
+      message((data.errors || ["Erreur inconnue."]).join("\n"), "err");
+    }
+  });
+
+  $("#reset").addEventListener("click", async () => {
+    const res = await fetch("/api/config/reset", { method: "POST" });
+    const data = await res.json();
+    SETTINGS = data.settings;
+    render();
+    message("Défauts restaurés ✓", "ok");
+  });
+
+  load();
+</script>
+</body>
+</html>
