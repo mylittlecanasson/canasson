@@ -80,3 +80,51 @@ def test_evaluate_day_gain_place(tmp_path, monkeypatch, response) -> None:
     result = evaluate_day("01012025")
     assert result is not None
     assert result.roi == 280 * (config.TICKET_VALUE_CENTS / 100) - config.TICKET_VALUE_CENTS
+
+
+def test_race_outcome_refreshes_stale_empty_cache(tmp_path, monkeypatch) -> None:
+    """Un cache de rapports vide (course pas encore courue au premier appel)
+    est rafraîchi dès que la course est attendue — le dividende réel du simple
+    placé est pris en compte au lieu d'un ROI nul (régression R2C6 du 09/08/2026)."""
+    from canasson.evaluate import roi
+
+    calls: list[bool] = []
+
+    def fake_get(url: str, cache_path, refresh: bool = False):
+        calls.append(refresh)
+        if "performances" in url:
+            return {"participants": [{"numPmu": 1, "nomCheval": "GAMMA"}]}
+        if "rapports" in url:
+            if refresh:
+                return [{"typePari": "E_SIMPLE_PLACE", "rapports": [{"combinaison": [1], "dividende": 280}]}]
+            return [{"typePari": "EB5", "rapports": []}]  # cache périmé d'avant-course
+        return {"incidents": []}
+
+    monkeypatch.setattr(roi, "_cached_get_json", fake_get)
+    race = {"url": "https://www.pmu.fr/turf/01012025/r1/c5"}
+    horsetodividende = roi._race_outcome(race, tmp_path)
+    assert horsetodividende == {
+        "GAMMA": 280 * (config.TICKET_VALUE_CENTS / 100) - config.TICKET_VALUE_CENTS
+    }
+    # le refresh n'a été déclenché qu'une seule fois (le rapport simple placé)
+    assert calls.count(True) == 1
+
+
+def test_race_outcome_no_refresh_for_future_race(tmp_path, monkeypatch) -> None:
+    """Course pas encore attendue → le cache vide n'est pas rafraîchi (inutile
+    d'interroger l'API pour une course pas encore courue)."""
+    from canasson.evaluate import roi
+
+    def fake_get(url: str, cache_path, refresh: bool = False):
+        if refresh:
+            raise AssertionError("pas de refresh attendu pour une course future")
+        if "performances" in url:
+            return {"participants": [{"numPmu": 1, "nomCheval": "GAMMA"}]}
+        if "rapports" in url:
+            return [{"typePari": "EB5", "rapports": []}]
+        return {"incidents": []}
+
+    monkeypatch.setattr(roi, "_race_due", lambda day: False)
+    monkeypatch.setattr(roi, "_cached_get_json", fake_get)
+    race = {"url": "https://www.pmu.fr/turf/01012025/r1/c5"}
+    assert roi._race_outcome(race, tmp_path) == {}

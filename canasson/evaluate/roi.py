@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import requests
@@ -36,13 +36,27 @@ class DayResult:
     row_html: str
 
 
-def _cached_get_json(url: str, cache_path: Path):
-    """GET JSON avec cache local dans data_gain (comme l'application d'origine)."""
-    if cache_path.is_file():
-        return json.load(open(cache_path, encoding="utf-8"))
-    data = requests.get(url, timeout=config.PMU_TIMEOUT).json()
-    cache_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
-    return data
+def _cached_get_json(url: str, cache_path: Path, refresh: bool = False):
+    """GET JSON avec cache local dans data_gain (comme l'application d'origine).
+
+    `refresh=True` ignore le cache et réinterroge l'API : les résultats d'une
+    course peuvent être indisponibles au premier appel (avant la course) puis
+    arriver plus tard — un cache vide ne doit pas geler l'évaluation.
+    """
+    if refresh or not cache_path.is_file():
+        data = requests.get(url, timeout=config.PMU_TIMEOUT).json()
+        cache_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
+        return data
+    return json.load(open(cache_path, encoding="utf-8"))
+
+
+def _race_due(day: str) -> bool:
+    """True si la course est attendue (jour ≤ aujourd'hui) : ses résultats
+    doivent être disponibles, un cache vide est alors suspect (à rafraîchir)."""
+    try:
+        return datetime.strptime(day, "%d%m%Y").date() <= date.today()
+    except ValueError:
+        return True
 
 
 def _race_outcome(response_race: dict, date_dir: Path) -> dict:
@@ -70,10 +84,26 @@ def _race_outcome(response_race: dict, date_dir: Path) -> dict:
 
     # rapports définitifs → dividende du simple placé (gagnant)
     try:
+        rapports_path = Path(str(base_path) + "rapports-definitifs.json")
         data = _cached_get_json(
             _PMU_RAPPORTS_URL.format(day=day, reunion=reunion, circuit=circuit),
-            Path(str(base_path) + "rapports-definitifs.json"),
+            rapports_path,
         )
+        # Cache vide car la course n'était pas finie au premier appel (résultat
+        # capturé trop tôt, puis jamais rafraîchi) : si la course est attendue,
+        # on réinterroge une fois pour prendre en compte le résultat réel.
+        entries = data if isinstance(data, list) else []
+        has_simple_place = any(
+            "E_SIMPLE_PLACE" in t.get("typePari", "")
+            or "SIMPLE_PLACE_INTERNATIONAL" in t.get("typePari", "")
+            for t in entries
+        )
+        if not has_simple_place and _race_due(day):
+            data = _cached_get_json(
+                _PMU_RAPPORTS_URL.format(day=day, reunion=reunion, circuit=circuit),
+                rapports_path,
+                refresh=True,
+            )
         for typepari in data:
             if "E_SIMPLE_PLACE" in typepari["typePari"] or "SIMPLE_PLACE_INTERNATIONAL" in typepari["typePari"]:
                 for rapport in typepari["rapports"]:
