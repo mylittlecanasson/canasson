@@ -82,6 +82,37 @@ python -m pip install -e '.[test]'
 python -m pytest
 ```
 
+## Analyse du code — Understand-Anything
+
+Le plugin **Understand-Anything** analyse le dépôt et produit un **graphe de
+connaissances** du code (structure, imports, couches d'architecture, flux
+métier), explorable via un dashboard interactif. Les artefacts sont générés
+dans `.ua/` (versionné) :
+
+- `knowledge-graph.json` — graphe complet : 111 nœuds (fichiers, fonctions,
+  classes, configs, services), 279 arêtes (imports, appels, dépendances,
+  tests), 9 couches d'architecture et une visite guidée en 12 étapes.
+- `domain-graph.json` — graphe du domaine métier : 5 domaines, 9 flux
+  (collecte, prédiction, évaluation, site, publication), 45 étapes.
+- `meta.json` / `fingerprints.json` — métadonnées d'analyse et empreintes
+  structurelles (permettent les mises à jour incrémentales automatiques).
+- `.understandignore` — motifs exclus de l'analyse ; `config.json` — langue
+  de sortie des contenus générés (fr).
+
+Commandes (depuis la racine du projet, dans Claude Code) :
+
+```bash
+/understand-anything:understand            # analyse complète → knowledge-graph.json
+/understand-anything:understand-domain     # domaine métier → domain-graph.json
+/understand-anything:understand-onboard    # guide d'onboarding → docs/ONBOARDING.md
+/understand-anything:understand-dashboard  # dashboard interactif local
+```
+
+Le dashboard démarre en local (serveur Vite) et s'ouvre sur une URL avec
+token d'accès ; il détecte automatiquement `domain-graph.json` pour afficher
+la vue métier. Rejouer `/understand-anything:understand` après une
+modification met à jour le graphe de façon incrémentale.
+
 ## Structure
 
 ```

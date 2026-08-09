@@ -1,0 +1,1716 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "66b5f2aad1fd3aa11a568daf58c5bf2ef086c15b",
+  "generatedAt": "2026-08-09T09:12:24.162Z",
+  "files": {
+    ".env.example": {
+      "filePath": ".env.example",
+      "contentHash": "f0af70b2b5fe7f9a214a3fc1d885d2523317258fc0958fe68f1fcdcf602e978c",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    ".ua/.understandignore": {
+      "filePath": ".ua/.understandignore",
+      "contentHash": "ec4701185279cf9914e47e5b6f3953049c0f268d04745ba16e3e2e40f72d26d7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 76,
+      "hasStructuralAnalysis": false
+    },
+    ".ua/config.json": {
+      "filePath": ".ua/config.json",
+      "contentHash": "3a60666fa673e1d392185dec6f91c716860a481acd510ac86736cd6c832e2809",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "Dockerfile": {
+      "filePath": "Dockerfile",
+      "contentHash": "bc8fc369f62d9dbed359158807db0891f916ebfa8e50b16e663be2a841098f35",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 19,
+      "hasStructuralAnalysis": true
+    },
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "1c88566422b7e51fe44493cab28341ac9384f7456189230963a7a6e050fbb0c8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 128,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/__init__.py": {
+      "filePath": "canasson/__init__.py",
+      "contentHash": "413ead87cb448fd055e91f20b12724652b8a79f8cca08f8158f2110a1da7ba88",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/cli.py": {
+      "filePath": "canasson/cli.py",
+      "contentHash": "99218c4f1e6f18cbbf2d0cc5f67f5e0d62fd3fe357a7b19e76a2618e601c098a",
+      "functions": [
+        {
+          "name": "_configure_logging",
+          "params": [
+            "verbose"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "cmd_collect",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "cmd_predict",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "cmd_evaluate",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "cmd_site",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "cmd_publish",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "cmd_backfill",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "cmd_rerun",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "cmd_run",
+          "params": [
+            "args"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "build_parser",
+          "params": [],
+          "returnType": "argparse.ArgumentParser",
+          "exported": true,
+          "lineCount": 36
+        },
+        {
+          "name": "main",
+          "params": [
+            "argv"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "argparse",
+          "specifiers": [
+            "argparse"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "sys",
+          "specifiers": [
+            "sys"
+          ]
+        },
+        {
+          "source": "warnings",
+          "specifiers": [
+            "warnings"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "__version__",
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.collect",
+          "specifiers": [
+            "canalturf",
+            "pmu"
+          ]
+        },
+        {
+          "source": "canasson.evaluate",
+          "specifiers": [
+            "evaluate_run"
+          ]
+        },
+        {
+          "source": "canasson.model",
+          "specifiers": [
+            "predict"
+          ]
+        },
+        {
+          "source": "canasson.publish",
+          "specifiers": [
+            "publish"
+          ]
+        },
+        {
+          "source": "canasson.site",
+          "specifiers": [
+            "generate"
+          ]
+        }
+      ],
+      "exports": [
+        "_configure_logging",
+        "cmd_collect",
+        "cmd_predict",
+        "cmd_evaluate",
+        "cmd_site",
+        "cmd_publish",
+        "cmd_backfill",
+        "cmd_rerun",
+        "cmd_run",
+        "build_parser",
+        "main"
+      ],
+      "totalLines": 172,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/collect/__init__.py": {
+      "filePath": "canasson/collect/__init__.py",
+      "contentHash": "3eecd72e65607f906dec6c9911679df4ee424100d80b33f942338ecd87707c3d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/collect/canalturf.py": {
+      "filePath": "canasson/collect/canalturf.py",
+      "contentHash": "01fd4721953a3f377a8c68502d68773136b842d64f81987400f201efbb370e81",
+      "functions": [
+        {
+          "name": "_parse_archive",
+          "params": [
+            "page_html"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "run",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "timedelta"
+          ]
+        },
+        {
+          "source": "requests",
+          "specifiers": [
+            "requests"
+          ]
+        },
+        {
+          "source": "bs4",
+          "specifiers": [
+            "BeautifulSoup"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        }
+      ],
+      "exports": [
+        "_parse_archive",
+        "run"
+      ],
+      "totalLines": 77,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/collect/pmu.py": {
+      "filePath": "canasson/collect/pmu.py",
+      "contentHash": "c089be1da950b0e3c1406b2a6064c2f4c32f9901b4a0910ac8c0648ade576506",
+      "functions": [
+        {
+          "name": "flatten_json",
+          "params": [
+            "value"
+          ],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "normalize_json",
+          "params": [
+            "records"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "write_json_in_csv",
+          "params": [
+            "records",
+            "filename"
+          ],
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "_course_with_eparis",
+          "params": [
+            "course"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_collected",
+          "params": [
+            "path"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "_fetch_json",
+          "params": [
+            "url",
+            "attempts"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "_download_day",
+          "params": [
+            "strday",
+            "context"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 75
+        },
+        {
+          "name": "download_data",
+          "params": [
+            "context",
+            "delta",
+            "step"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "download_query",
+          "params": [
+            "date_query"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "run",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "time",
+          "specifiers": [
+            "time"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "timedelta"
+          ]
+        },
+        {
+          "source": "urllib.request",
+          "specifiers": [
+            "urlopen"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        }
+      ],
+      "exports": [
+        "flatten_json",
+        "normalize_json",
+        "write_json_in_csv",
+        "_course_with_eparis",
+        "_collected",
+        "_fetch_json",
+        "_download_day",
+        "download_data",
+        "download_query",
+        "run"
+      ],
+      "totalLines": 209,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/config.py": {
+      "filePath": "canasson/config.py",
+      "contentHash": "733cf2bac567737c0c27a05740dce06c7372767af9a6a639a26cf918850a7fa0",
+      "functions": [
+        {
+          "name": "ensure_dirs",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "os",
+          "specifiers": [
+            "os"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        }
+      ],
+      "exports": [
+        "ensure_dirs"
+      ],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/evaluate/__init__.py": {
+      "filePath": "canasson/evaluate/__init__.py",
+      "contentHash": "04b9f9c5cc8add014797d04206a9070992c097dc5543edaeb10e1ce26ea55196",
+      "functions": [
+        {
+          "name": "run",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "canasson.evaluate",
+          "specifiers": [
+            "bethistory",
+            "chart",
+            "roi"
+          ]
+        }
+      ],
+      "exports": [
+        "run"
+      ],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/evaluate/bethistory.py": {
+      "filePath": "canasson/evaluate/bethistory.py",
+      "contentHash": "7dc5fb67a7dcc6d7441f6f86009373ed9c411daecc38fe912657a044133a5e57",
+      "functions": [
+        {
+          "name": "render",
+          "params": [
+            "results"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.evaluate.roi",
+          "specifiers": [
+            "DayResult"
+          ]
+        }
+      ],
+      "exports": [
+        "render"
+      ],
+      "totalLines": 30,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/evaluate/chart.py": {
+      "filePath": "canasson/evaluate/chart.py",
+      "contentHash": "585ce8e0499453b48e4ee4f3afb739741b2a7259b5446f1dcdbb3682a688ccc7",
+      "functions": [
+        {
+          "name": "render",
+          "params": [
+            "results"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 44
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "itertools",
+          "specifiers": [
+            "accumulate"
+          ]
+        },
+        {
+          "source": "matplotlib",
+          "specifiers": [
+            "matplotlib"
+          ]
+        },
+        {
+          "source": "matplotlib.pyplot",
+          "specifiers": [
+            "plt"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.evaluate.roi",
+          "specifiers": [
+            "DayResult"
+          ]
+        }
+      ],
+      "exports": [
+        "render"
+      ],
+      "totalLines": 68,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/evaluate/roi.py": {
+      "filePath": "canasson/evaluate/roi.py",
+      "contentHash": "677ccb2125239fecab58205c206f94918618677af399ed6d6e548289732d633d",
+      "functions": [
+        {
+          "name": "_cached_get_json",
+          "params": [
+            "url",
+            "cache_path"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "_race_outcome",
+          "params": [
+            "response_race",
+            "date_dir"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 58
+        },
+        {
+          "name": "choose_course",
+          "params": [
+            "response"
+          ],
+          "returnType": "tuple[str, str]",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "pick_horse",
+          "params": [
+            "response"
+          ],
+          "returnType": "tuple[dict, str, str]",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "evaluate_day",
+          "params": [
+            "datestr"
+          ],
+          "returnType": "DayResult | None",
+          "exported": true,
+          "lineCount": 52
+        },
+        {
+          "name": "evaluate_all",
+          "params": [],
+          "returnType": "list[DayResult]",
+          "exported": true,
+          "lineCount": 13
+        }
+      ],
+      "classes": [
+        {
+          "name": "DayResult",
+          "methods": [],
+          "properties": [
+            "date",
+            "roi",
+            "row_html"
+          ],
+          "exported": true,
+          "lineCount": 6
+        }
+      ],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "dataclasses",
+          "specifiers": [
+            "dataclass"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "requests",
+          "specifiers": [
+            "requests"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        }
+      ],
+      "exports": [
+        "DayResult",
+        "_cached_get_json",
+        "_race_outcome",
+        "choose_course",
+        "pick_horse",
+        "evaluate_day",
+        "evaluate_all"
+      ],
+      "totalLines": 211,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/model/__init__.py": {
+      "filePath": "canasson/model/__init__.py",
+      "contentHash": "852be590c67d427bf73225099907e7fdd3eb2ff14b6b1bfc4bf6368ccebca6ea",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/model/features.py": {
+      "filePath": "canasson/model/features.py",
+      "contentHash": "6df27994e959e7455b39a1c99bc90be989734e0a1812c64e4fc94e907327f832",
+      "functions": [
+        {
+          "name": "get_factors",
+          "params": [
+            "n"
+          ],
+          "returnType": "list[int]",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_filter",
+          "params": [
+            "df"
+          ],
+          "returnType": "pd.DataFrame",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "load_train",
+          "params": [
+            "days",
+            "ref_date"
+          ],
+          "returnType": "pd.DataFrame",
+          "exported": true,
+          "lineCount": 25
+        },
+        {
+          "name": "load_query",
+          "params": [
+            "date_query"
+          ],
+          "returnType": "pd.DataFrame",
+          "exported": true,
+          "lineCount": 20
+        },
+        {
+          "name": "encode",
+          "params": [
+            "df"
+          ],
+          "returnType": "tuple[pd.DataFrame, dict[str, LabelEncoder]]",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "build_target",
+          "params": [
+            "df_train"
+          ],
+          "returnType": "pd.Series",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "select_features",
+          "params": [
+            "encoded_df_train",
+            "encoded_df_query",
+            "df_train"
+          ],
+          "returnType": "list[str]",
+          "exported": true,
+          "lineCount": 43
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "re",
+          "specifiers": [
+            "re"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "timedelta"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "sklearn.preprocessing",
+          "specifiers": [
+            "LabelEncoder"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        }
+      ],
+      "exports": [
+        "get_factors",
+        "_filter",
+        "load_train",
+        "load_query",
+        "encode",
+        "build_target",
+        "select_features"
+      ],
+      "totalLines": 178,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/model/predict.py": {
+      "filePath": "canasson/model/predict.py",
+      "contentHash": "51c4c75a38d03f78b07d431c6af2d06361bca22562a6f720eaebf5fd6c39d76e",
+      "functions": [
+        {
+          "name": "default_date",
+          "params": [],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_as_int",
+          "params": [
+            "value"
+          ],
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "_save_heatmap",
+          "params": [
+            "encoded_df_train",
+            "pertinent_index",
+            "date_query"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_predict_rows",
+          "params": [
+            "model",
+            "min_max_scaler",
+            "encoders",
+            "encoded_df_query",
+            "df_query",
+            "date_query",
+            "pertinent_index"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 55
+        },
+        {
+          "name": "_normalize_winrates",
+          "params": [
+            "todump"
+          ],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "run",
+          "params": [
+            "date_str"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 54
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "datetime",
+            "timedelta"
+          ]
+        },
+        {
+          "source": "matplotlib",
+          "specifiers": [
+            "matplotlib"
+          ]
+        },
+        {
+          "source": "matplotlib.pyplot",
+          "specifiers": [
+            "plt"
+          ]
+        },
+        {
+          "source": "numpy",
+          "specifiers": [
+            "np"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "seaborn",
+          "specifiers": [
+            "sns"
+          ]
+        },
+        {
+          "source": "sklearn",
+          "specifiers": [
+            "metrics",
+            "model_selection",
+            "preprocessing"
+          ]
+        },
+        {
+          "source": "sklearn.ensemble",
+          "specifiers": [
+            "RandomForestClassifier"
+          ]
+        },
+        {
+          "source": "sklearn.metrics",
+          "specifiers": [
+            "ConfusionMatrixDisplay"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.model",
+          "specifiers": [
+            "features"
+          ]
+        }
+      ],
+      "exports": [
+        "default_date",
+        "_as_int",
+        "_save_heatmap",
+        "_predict_rows",
+        "_normalize_winrates",
+        "run"
+      ],
+      "totalLines": 194,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/publish/__init__.py": {
+      "filePath": "canasson/publish/__init__.py",
+      "contentHash": "d2058c9a3c16036da1a17469bd0e8683c0eda350253f19fd009e29d23b449284",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/publish/github.py": {
+      "filePath": "canasson/publish/github.py",
+      "contentHash": "1d3b64d45c5ceef19a7981c87e9f74a3e26049fa22c3651197e4c285662d025b",
+      "functions": [
+        {
+          "name": "_copy_artifacts",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_git_push",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "run",
+          "params": [
+            "no_push"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 31
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "shutil",
+          "specifiers": [
+            "shutil"
+          ]
+        },
+        {
+          "source": "git",
+          "specifiers": [
+            "Repo"
+          ]
+        },
+        {
+          "source": "git.exc",
+          "specifiers": [
+            "GitError"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        }
+      ],
+      "exports": [
+        "_copy_artifacts",
+        "_git_push",
+        "run"
+      ],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/site/__init__.py": {
+      "filePath": "canasson/site/__init__.py",
+      "contentHash": "a27c0bcf2064b5bad950bfa0ff23f0f4b06409fd08267cbe2f2707b14b339cdb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 2,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/site/generate.py": {
+      "filePath": "canasson/site/generate.py",
+      "contentHash": "39e0381948eb60345a919c1352a296230831e7a44f39ae9fbca5514466d052d1",
+      "functions": [
+        {
+          "name": "_cturf_link",
+          "params": [
+            "data_infos",
+            "reunion",
+            "circuit",
+            "date_str"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "_article",
+          "params": [
+            "date_str",
+            "data",
+            "data_infos"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 47
+        },
+        {
+          "name": "run",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 34
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "logging",
+          "specifiers": [
+            "logging"
+          ]
+        },
+        {
+          "source": "datetime",
+          "specifiers": [
+            "datetime"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.evaluate.roi",
+          "specifiers": [
+            "choose_course"
+          ]
+        }
+      ],
+      "exports": [
+        "_cturf_link",
+        "_article",
+        "run"
+      ],
+      "totalLines": 120,
+      "hasStructuralAnalysis": true
+    },
+    "canasson/site/templates/about.html": {
+      "filePath": "canasson/site/templates/about.html",
+      "contentHash": "9b242ab3dd59bbac544fba555a16eddc179e2137b16199b5725f04456d79abb0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 88,
+      "hasStructuralAnalysis": false
+    },
+    "canasson/site/templates/bethistory-template.html": {
+      "filePath": "canasson/site/templates/bethistory-template.html",
+      "contentHash": "4fdc61b751f88c156da7b2718c1a0a7baa7c4e35cbeee2f629aaba93ba18ffa3",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 99,
+      "hasStructuralAnalysis": false
+    },
+    "canasson/site/templates/contact.html": {
+      "filePath": "canasson/site/templates/contact.html",
+      "contentHash": "71c11a1a2fbb915ed5181bc50358d5219883c6615770801c8f1e0057ffade422",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 77,
+      "hasStructuralAnalysis": false
+    },
+    "canasson/site/templates/index_template.html": {
+      "filePath": "canasson/site/templates/index_template.html",
+      "contentHash": "75f057cfbbc3133b116288cf6f13d3350c707a7d037f0da82f628462e4e74539",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 114,
+      "hasStructuralAnalysis": false
+    },
+    "canasson/site/templates/race.html": {
+      "filePath": "canasson/site/templates/race.html",
+      "contentHash": "38cce8c71ff2218b5e2db8fadcabdec8d88c5766af9cc909a5c07a739c286d9d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 92,
+      "hasStructuralAnalysis": false
+    },
+    "docker-compose.yml": {
+      "filePath": "docker-compose.yml",
+      "contentHash": "b7d4101391887cfecca95e39c4b127721c7b47b92d911af93caeb3f4b47629af",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "pyproject.toml": {
+      "filePath": "pyproject.toml",
+      "contentHash": "36521e46d62638c7f6cf868957b8326235ef045bfdad313469144828f89d6875",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 37,
+      "hasStructuralAnalysis": true
+    },
+    "tests/conftest.py": {
+      "filePath": "tests/conftest.py",
+      "contentHash": "b272c3b58f98e8ec0f505bc99db3265926bf414140b944a4583bdfecbd193325",
+      "functions": [
+        {
+          "name": "response",
+          "params": [],
+          "returnType": "dict",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        }
+      ],
+      "exports": [
+        "response"
+      ],
+      "totalLines": 16,
+      "hasStructuralAnalysis": true
+    },
+    "tests/fixtures/response.json": {
+      "filePath": "tests/fixtures/response.json",
+      "contentHash": "2e864316a5f5f707a6e615c81a382094b016e93aa8a6e0d283698f167dc90b7b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_filters.py": {
+      "filePath": "tests/test_filters.py",
+      "contentHash": "ae9319d8902c0f4251cd123686e04d2dfa37063b40133dc62171db84abe22b9b",
+      "functions": [
+        {
+          "name": "test_get_factors",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_filter_discipline_et_courses",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "test_filter_types_mixtes",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "test_build_target_top_place",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_filter_sans_ordre_arrivee",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_result_columns_detecte_toute_la_fuite",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "test_load_query_supprime_les_resultats",
+          "params": [
+            "tmp_path",
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 32
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "datetime",
+          "specifiers": [
+            "date",
+            "timedelta"
+          ]
+        },
+        {
+          "source": "pandas",
+          "specifiers": [
+            "pd"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.model.features",
+          "specifiers": [
+            "RESULT_COLUMNS",
+            "_filter",
+            "build_target",
+            "get_factors",
+            "load_query",
+            "load_train"
+          ]
+        }
+      ],
+      "exports": [
+        "test_get_factors",
+        "test_filter_discipline_et_courses",
+        "test_filter_types_mixtes",
+        "test_build_target_top_place",
+        "test_filter_sans_ordre_arrivee",
+        "test_result_columns_detecte_toute_la_fuite",
+        "test_load_query_supprime_les_resultats"
+      ],
+      "totalLines": 134,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_schema.py": {
+      "filePath": "tests/test_schema.py",
+      "contentHash": "4d1c02b1bf33990c51a571c33bd157d75ef5c955e08f45b73cde4f6981ef36b9",
+      "functions": [
+        {
+          "name": "test_response_schema",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "test_horse_fields",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "test_as_int_convertit_floats",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_rel_prob_coherent",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "math",
+          "specifiers": [
+            "math"
+          ]
+        },
+        {
+          "source": "pytest",
+          "specifiers": [
+            "pytest"
+          ]
+        },
+        {
+          "source": "canasson.model.predict",
+          "specifiers": [
+            "_as_int"
+          ]
+        }
+      ],
+      "exports": [
+        "test_response_schema",
+        "test_horse_fields",
+        "test_as_int_convertit_floats",
+        "test_rel_prob_coherent"
+      ],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_strategy.py": {
+      "filePath": "tests/test_strategy.py",
+      "contentHash": "8733378218f5763042398b88e3b16f0927afb10703c8034dd902589a6d6a8877",
+      "functions": [
+        {
+          "name": "test_choose_course_max_ratio_delta",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_pick_horse_most_qualitative",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "test_choose_course_empty",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "_setup_gain",
+          "params": [
+            "tmp_path",
+            "response",
+            "placed"
+          ],
+          "returnType": "Path",
+          "exported": true,
+          "lineCount": 21
+        },
+        {
+          "name": "test_evaluate_day_perte_comptee_sans_pronostics",
+          "params": [
+            "tmp_path",
+            "monkeypatch",
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "test_evaluate_day_gain_place",
+          "params": [
+            "tmp_path",
+            "monkeypatch",
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "json",
+          "specifiers": [
+            "json"
+          ]
+        },
+        {
+          "source": "pathlib",
+          "specifiers": [
+            "Path"
+          ]
+        },
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.evaluate.roi",
+          "specifiers": [
+            "choose_course",
+            "evaluate_day",
+            "pick_horse"
+          ]
+        }
+      ],
+      "exports": [
+        "test_choose_course_max_ratio_delta",
+        "test_pick_horse_most_qualitative",
+        "test_choose_course_empty",
+        "_setup_gain",
+        "test_evaluate_day_perte_comptee_sans_pronostics",
+        "test_evaluate_day_gain_place"
+      ],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "tests/test_template.py": {
+      "filePath": "tests/test_template.py",
+      "contentHash": "b02b6fb41539281cd378a52193fcbb453b37ed5bd75a6bae69ae7e3e9c4c7193",
+      "functions": [
+        {
+          "name": "test_templates_contain_marker",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_cturf_links_present",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "test_cturf_archives_fallback",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "test_article_builds_chart_and_winner",
+          "params": [
+            "response"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "canasson",
+          "specifiers": [
+            "config"
+          ]
+        },
+        {
+          "source": "canasson.site.generate",
+          "specifiers": [
+            "_article",
+            "_cturf_link"
+          ]
+        }
+      ],
+      "exports": [
+        "test_templates_contain_marker",
+        "test_cturf_links_present",
+        "test_cturf_archives_fallback",
+        "test_article_builds_chart_and_winner"
+      ],
+      "totalLines": 40,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

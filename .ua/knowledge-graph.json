@@ -1,0 +1,4003 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "canasson",
+    "languages": [
+      "config",
+      "dockerfile",
+      "html",
+      "json",
+      "markdown",
+      "python",
+      "toml",
+      "unknown",
+      "yaml"
+    ],
+    "frameworks": [
+      "Docker",
+      "Docker Compose",
+      "pytest"
+    ],
+    "description": "Système de prédiction hippique (PMU) : collecte des données de course, apprentissage automatique, calcul du ROI et génération d'un site statique. Reconstruction structurée et testée de l'application Mylittlecanasson, exécutable via Docker Compose.",
+    "analyzedAt": "2026-08-09T09:10:15.032Z",
+    "gitCommitHash": "66b5f2aad1fd3aa11a568daf58c5bf2ef086c15b"
+  },
+  "nodes": [
+    {
+      "id": "file:canasson/cli.py",
+      "type": "file",
+      "name": "cli.py",
+      "summary": "Point d'entrée en ligne de commande de Canasson. Expose les sous-commandes collect, predict, evaluate, site, publish, backfill, rerun et run (pipeline complet lancé par docker compose up).",
+      "tags": [
+        "entry-point",
+        "cli",
+        "pipeline",
+        "orchestration"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "languageNotes": "Argparse avec sous-commandes ; le dictionnaire _COMMANDS assure le dispatch direct de main vers chaque commande."
+    },
+    {
+      "id": "file:canasson/collect/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Paquet de collecte de données : documente le rôle du module (API PMU pour l'apprentissage et le test, scraping canalturf) sans implémenter de logique.",
+      "tags": [
+        "package",
+        "collect",
+        "documentation"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/__init__.py"
+    },
+    {
+      "id": "file:canasson/collect/canalturf.py",
+      "type": "file",
+      "name": "canalturf.py",
+      "summary": "Scrape les archives de canalturf.com (demain → 59 jours en arrière) : télécharge les pages HTML avec un cache local dans data_cturf/<date>/ et extrait les liens Pronos / Résultats de chaque course dans infos.json.",
+      "tags": [
+        "collect",
+        "scraping",
+        "data-pipeline"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/canalturf.py"
+    },
+    {
+      "id": "file:canasson/collect/pmu.py",
+      "type": "file",
+      "name": "pmu.py",
+      "summary": "Collecte les données depuis l'API PMU : télécharge le programme des courses, les participants et les pronostics détaillés, puis sérialise le tout en CSV dans data_train/<date>.csv et data_test/<date>/query.csv, avec repli gracieux quand l'API throttle.",
+      "tags": [
+        "collect",
+        "api",
+        "data-pipeline"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/collect/pmu.py",
+      "languageNotes": "Backoff exponentiel dans _fetch_json et philosophie de « skip gracieux » face au throttling de l'API PMU."
+    },
+    {
+      "id": "file:canasson/model/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Paquet du modèle : documente le rôle du module (ingénierie de features et prédiction par RandomForest) sans implémenter de logique.",
+      "tags": [
+        "package",
+        "machine-learning",
+        "documentation"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/model/__init__.py"
+    },
+    {
+      "id": "file:canasson/model/predict.py",
+      "type": "file",
+      "name": "predict.py",
+      "summary": "Entraîne un RandomForest sur 60 jours d'historique et prédit la probabilité de victoire de chaque cheval pour une date cible ; normalise les probabilités par circuit et sérialise le résultat dans data_test/<date>/response.json (avec heatmap et matrice de confusion).",
+      "tags": [
+        "machine-learning",
+        "prediction",
+        "random-forest",
+        "inference",
+        "tested"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/model/predict.py",
+      "languageNotes": "L'apprentissage se réfère à une ref_date pour n'utiliser que les données disponibles à l'époque lors des backtests/reruns, évitant toute fuite d'information."
+    },
+    {
+      "id": "file:canasson/publish/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Paquet de publication : documente le rôle du module (publication des artefacts HTML générés sur mylittlecanasson.github.io).",
+      "tags": [
+        "package",
+        "publication",
+        "deployment"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/publish/__init__.py"
+    },
+    {
+      "id": "file:canasson/site/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "summary": "Paquet du site : documente le rôle du module (génération du site statique, page d'accueil index.html).",
+      "tags": [
+        "package",
+        "site",
+        "generation"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/site/__init__.py"
+    },
+    {
+      "id": "file:tests/test_schema.py",
+      "type": "file",
+      "name": "test_schema.py",
+      "summary": "Tests du schéma de response.json : vérifie la structure rN → cN → {url, commentaire, total_prob, horses}, les champs de chaque cheval, la conversion _as_int et la cohérence numérique de rel_prob/total_prob.",
+      "tags": [
+        "test",
+        "schema",
+        "validation",
+        "pytest"
+      ],
+      "complexity": "moderate",
+      "filePath": "tests/test_schema.py"
+    },
+    {
+      "id": "function:canasson/cli.py:_configure_logging",
+      "type": "function",
+      "name": "_configure_logging",
+      "summary": "Configure la journalisation (niveau DEBUG en mode verbose), masque le bruit des dépendances (matplotlib, urllib3, PIL…) et filtre les DtypeWarning pandas sur les CSV à types mixtes.",
+      "tags": [
+        "logging",
+        "configuration",
+        "utility"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        23,
+        35
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_collect",
+      "type": "function",
+      "name": "cmd_collect",
+      "summary": "Lance la collecte des données : API PMU (60 jours d'apprentissage + demain) puis scraping canalturf.",
+      "tags": [
+        "cli",
+        "collect",
+        "orchestration"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        38,
+        42
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_predict",
+      "type": "function",
+      "name": "cmd_predict",
+      "summary": "Entraîne le modèle et prédit la probabilité de victoire de chaque cheval pour une date donnée.",
+      "tags": [
+        "cli",
+        "prediction",
+        "machine-learning"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        45,
+        48
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_evaluate",
+      "type": "function",
+      "name": "cmd_evaluate",
+      "summary": "Calcule le ROI (stratégie CRAZY BET) et régénère bethistory.html et candle.png.",
+      "tags": [
+        "cli",
+        "evaluation",
+        "roi"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        51,
+        54
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_site",
+      "type": "function",
+      "name": "cmd_site",
+      "summary": "Régénère la page d'accueil index.html (top 7 jours et course à jouer).",
+      "tags": [
+        "cli",
+        "site",
+        "generation"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        57,
+        60
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_publish",
+      "type": "function",
+      "name": "cmd_publish",
+      "summary": "Clone mylittlecanasson.github.io, copie les artefacts générés et pousse les changements (option --no-push pour la copie seule).",
+      "tags": [
+        "cli",
+        "publication",
+        "deployment"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        63,
+        66
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_backfill",
+      "type": "function",
+      "name": "cmd_backfill",
+      "summary": "Backtest des N derniers jours : étend l'historique d'apprentissage puis prédit chaque jour passé en n'utilisant que les données disponibles au moment de la prédiction (sans fuite d'information).",
+      "tags": [
+        "cli",
+        "backtest",
+        "machine-learning"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        69,
+        86
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_rerun",
+      "type": "function",
+      "name": "cmd_rerun",
+      "summary": "Rejoue la prédiction d'une date passée puis recalcule le ROI (remplace l'ancien rerunall.sh).",
+      "tags": [
+        "cli",
+        "rerun",
+        "prediction"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        89,
+        93
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:cmd_run",
+      "type": "function",
+      "name": "cmd_run",
+      "summary": "Exécute le pipeline complet : collect → predict → evaluate → site → publish (sauf avec --no-publish). C'est la commande lancée par docker compose up.",
+      "tags": [
+        "cli",
+        "pipeline",
+        "orchestration"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        96,
+        107
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:build_parser",
+      "type": "function",
+      "name": "build_parser",
+      "summary": "Construit le parseur argparse : sous-commandes, options --version/--verbose et arguments spécifiques (date cible, --no-push, --no-publish, days).",
+      "tags": [
+        "cli",
+        "parsing",
+        "configuration"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        110,
+        145
+      ]
+    },
+    {
+      "id": "function:canasson/cli.py:main",
+      "type": "function",
+      "name": "main",
+      "summary": "Point d'entrée principal : parse les arguments, configure la journalisation et dispatche vers la sous-commande choisie (retourne 130 sur interruption clavier).",
+      "tags": [
+        "entry-point",
+        "cli",
+        "dispatcher"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        160,
+        167
+      ]
+    },
+    {
+      "id": "function:canasson/collect/canalturf.py:_parse_archive",
+      "type": "function",
+      "name": "_parse_archive",
+      "summary": "Analyse une page d'archives canalturf avec BeautifulSoup et extrait, pour chaque réunion (rX) et course (cY), les liens pronos et résultats.",
+      "tags": [
+        "scraping",
+        "parsing",
+        "html"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/canalturf.py",
+      "lineRange": [
+        23,
+        46
+      ]
+    },
+    {
+      "id": "function:canasson/collect/canalturf.py:run",
+      "type": "function",
+      "name": "run",
+      "summary": "Parcourt les 60 derniers jours, télécharge les pages d'archives (cache HTML local par date) et écrit les liens extraits dans infos.json pour chaque jour.",
+      "tags": [
+        "scraping",
+        "data-pipeline",
+        "cache"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/canalturf.py",
+      "lineRange": [
+        49,
+        76
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:flatten_json",
+      "type": "function",
+      "name": "flatten_json",
+      "summary": "Aplatit récursivement un objet JSON (dict/list) en clés plates préfixées par le chemin, séparées par des underscores.",
+      "tags": [
+        "utility",
+        "serialization",
+        "json"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        22,
+        40
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:normalize_json",
+      "type": "function",
+      "name": "normalize_json",
+      "summary": "Complète chaque enregistrement avec toutes les clés vues dans la collection (NaN si absente) pour obtenir des colonnes homogènes.",
+      "tags": [
+        "utility",
+        "data-normalization",
+        "json"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        43,
+        53
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:write_json_in_csv",
+      "type": "function",
+      "name": "write_json_in_csv",
+      "summary": "Sérialise une liste de dictionnaires en CSV ; les virgules contenues dans les valeurs sont remplacées par des points pour préserver la structure.",
+      "tags": [
+        "serialization",
+        "csv",
+        "utility"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        56,
+        63
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:_course_with_eparis",
+      "type": "function",
+      "name": "_course_with_eparis",
+      "summary": "Détermine si une course propose un pari simple (typePari commençant par E_), condition de conservation de la course dans le jeu de données.",
+      "tags": [
+        "filter",
+        "utility",
+        "validation"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        66,
+        68
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:_collected",
+      "type": "function",
+      "name": "_collected",
+      "summary": "Indique si la collecte d'un jour est déjà complète : un fichier CSV existant et non vide ; un CSV à 0 octet signale un échec et sera re-tenté.",
+      "tags": [
+        "cache",
+        "utility",
+        "validation"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        71,
+        74
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:_fetch_json",
+      "type": "function",
+      "name": "_fetch_json",
+      "summary": "GET JSON avec tentatives et backoff (l'API PMU throttle sporadiquement). Renvoie un dict vide si l'API reste inaccessible ; un corps vide (HTTP 204) est journalisé en DEBUG.",
+      "tags": [
+        "api",
+        "http",
+        "resilience"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        77,
+        102
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:_download_day",
+      "type": "function",
+      "name": "_download_day",
+      "summary": "Télécharge le programme d'une journée précise : pour chaque réunion/course conservée, récupère participants et pronostics détaillés, fusionne les données et écrit le CSV d'apprentissage ou la requête de test.",
+      "tags": [
+        "api",
+        "data-pipeline",
+        "collect"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        105,
+        179
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:download_data",
+      "type": "function",
+      "name": "download_data",
+      "summary": "Télécharge delta jours espacés de step jours : historique d'apprentissage (60 jours) ou course de demain (test).",
+      "tags": [
+        "api",
+        "collect",
+        "orchestration"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        182,
+        194
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:download_query",
+      "type": "function",
+      "name": "download_query",
+      "summary": "Télécharge le programme d'une date précise vers data_test/<date>/query.csv (utilisé par le backtest).",
+      "tags": [
+        "api",
+        "collect",
+        "query"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        197,
+        199
+      ]
+    },
+    {
+      "id": "function:canasson/collect/pmu.py:run",
+      "type": "function",
+      "name": "run",
+      "summary": "Télécharge la course de demain (test) et 60 jours d'historique (train) pour l'apprentissage du modèle.",
+      "tags": [
+        "api",
+        "collect",
+        "orchestration"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        202,
+        208
+      ]
+    },
+    {
+      "id": "function:canasson/model/predict.py:default_date",
+      "type": "function",
+      "name": "default_date",
+      "summary": "Renvoie la date cible par défaut : demain au format DDMMYYYY.",
+      "tags": [
+        "utility",
+        "date",
+        "default"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        30,
+        32
+      ]
+    },
+    {
+      "id": "function:canasson/model/predict.py:_as_int",
+      "type": "function",
+      "name": "_as_int",
+      "summary": "Convertit un entier que pandas lit en float (1.0) vers int, indispensable pour des URLs PMU propres ; en cas de NaN réel, renvoie la valeur brute.",
+      "tags": [
+        "utility",
+        "conversion",
+        "types"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        35,
+        46
+      ]
+    },
+    {
+      "id": "function:canasson/model/predict.py:_save_heatmap",
+      "type": "function",
+      "name": "_save_heatmap",
+      "summary": "Génère et enregistre une heatmap de corrélation des features pertinentes (avec l'ordre d'arrivée) dans data_test/<date>/heatmap.png.",
+      "tags": [
+        "visualization",
+        "machine-learning",
+        "diagnostics"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        49,
+        57
+      ]
+    },
+    {
+      "id": "function:canasson/model/predict.py:_predict_rows",
+      "type": "function",
+      "name": "_predict_rows",
+      "summary": "Inférence cheval par cheval : applique le scaler et les encoders, prédit la probabilité via RandomForest, reconstruit les valeurs lisibles et construit la structure todump du schéma response.json.",
+      "tags": [
+        "machine-learning",
+        "inference",
+        "serialization"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        60,
+        114
+      ]
+    },
+    {
+      "id": "function:canasson/model/predict.py:_normalize_winrates",
+      "type": "function",
+      "name": "_normalize_winrates",
+      "summary": "Normalise les probabilités de chaque cheval sur la somme du circuit pour produire rel_prob (entiers) et total_prob, conformément au schéma attendu.",
+      "tags": [
+        "normalization",
+        "machine-learning",
+        "statistics"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        117,
+        137
+      ]
+    },
+    {
+      "id": "function:canasson/model/predict.py:run",
+      "type": "function",
+      "name": "run",
+      "summary": "Orchestre l'entraînement : charge les données (train + query), encode et sélectionne les features, entraîne un RandomForest (max_depth=20), évalue sur un split 80/20, sauvegarde la matrice de confusion puis écrit response.json pour la date cible.",
+      "tags": [
+        "machine-learning",
+        "training",
+        "pipeline",
+        "prediction"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        140,
+        193
+      ]
+    },
+    {
+      "id": "function:tests/test_schema.py:test_response_schema",
+      "type": "function",
+      "name": "test_response_schema",
+      "summary": "Vérifie la structure de niveau réunion/circuit : clés attendues, URL PMU, commentaire, total_prob à 2 éléments et liste horses non vide.",
+      "tags": [
+        "test",
+        "schema",
+        "validation"
+      ],
+      "complexity": "moderate",
+      "filePath": "tests/test_schema.py",
+      "lineRange": [
+        11,
+        22
+      ]
+    },
+    {
+      "id": "function:tests/test_schema.py:test_horse_fields",
+      "type": "function",
+      "name": "test_horse_fields",
+      "summary": "Vérifie que chaque cheval porte exactement les champs nom, nom_query, numPmu_query, cribles, prob et rel_prob, avec prob et rel_prob à 2 éléments.",
+      "tags": [
+        "test",
+        "schema",
+        "validation"
+      ],
+      "complexity": "moderate",
+      "filePath": "tests/test_schema.py",
+      "lineRange": [
+        25,
+        40
+      ]
+    },
+    {
+      "id": "function:tests/test_schema.py:test_as_int_convertit_floats",
+      "type": "function",
+      "name": "test_as_int_convertit_floats",
+      "summary": "Vérifie que _as_int convertit correctement les entiers lus en float (1.0 → 1) et renvoie la valeur brute pour un vrai NaN.",
+      "tags": [
+        "test",
+        "utility",
+        "unit"
+      ],
+      "complexity": "simple",
+      "filePath": "tests/test_schema.py",
+      "lineRange": [
+        43,
+        49
+      ]
+    },
+    {
+      "id": "function:tests/test_schema.py:test_rel_prob_coherent",
+      "type": "function",
+      "name": "test_rel_prob_coherent",
+      "summary": "Vérifie la cohérence numérique : total_prob est la somme des prob par circuit et rel_prob est l'arrondi entier de prob/somme × 100.",
+      "tags": [
+        "test",
+        "statistics",
+        "validation"
+      ],
+      "complexity": "simple",
+      "filePath": "tests/test_schema.py",
+      "lineRange": [
+        52,
+        60
+      ]
+    },
+    {
+      "id": "file:canasson/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "canasson/__init__.py",
+      "summary": "Initialiseur du paquet Canasson : porte la docstring du projet (collecte des données PMU, entraînement d'un RandomForest, stratégie « CRAZY BET », calcul de ROI et génération d'un site statique publié sur GitHub Pages) et expose la version 1.0.0 de l'application.",
+      "tags": [
+        "entry-point",
+        "package",
+        "metadata"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "canasson/config.py",
+      "summary": "Configuration centrale de Canasson : constantes métier (filtres d'apprentissage, stratégie de jeu, endpoints PMU/Canalturf, rythme et timeout de collecte) et chemins de données pilotés par l'environnement Docker Compose, avec la fonction ensure_dirs pour créer les répertoires runtime.",
+      "tags": [
+        "configuration",
+        "constants",
+        "settings",
+        "paths",
+        "tested"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Configuration Python pure : les constantes sont des attributs de module importés directement par le reste du code (`from canasson import config`), ce qui permet aux tests de les remplacer via `monkeypatch.setattr`."
+    },
+    {
+      "id": "function:canasson/config.py:ensure_dirs",
+      "type": "function",
+      "name": "ensure_dirs",
+      "filePath": "canasson/config.py",
+      "lineRange": [
+        87,
+        90
+      ],
+      "summary": "Crée les répertoires de données runtime (data, data_train, data_test, data_cturf, data_gain, generated) s'ils n'existent pas encore, en utilisant Path.mkdir avec parents et exist_ok.",
+      "tags": [
+        "utility",
+        "filesystem",
+        "setup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/model/features.py",
+      "type": "file",
+      "name": "features.py",
+      "filePath": "canasson/model/features.py",
+      "summary": "Module d'ingénierie de features : chargement et filtrage des données d'apprentissage et de requête (discipline PLAT, partants, distance), encodage des colonnes catégorielles et sélection des features par corrélation à `ordreArrivee`, port fidèle de process_final_v0.1.py.",
+      "tags": [
+        "data-model",
+        "feature-engineering",
+        "machine-learning",
+        "data-preprocessing",
+        "tested"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Pipeline pandas/NumPy/sklearn : la sélection de features compare la corrélation de chaque colonne à `ordreArrivee` avec celle de `nom`, et les filtres `paris_*` / `incident_*` sont appliqués par regex pour éviter toute fuite d'information."
+    },
+    {
+      "id": "function:canasson/model/features.py:get_factors",
+      "type": "function",
+      "name": "get_factors",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        40,
+        42
+      ],
+      "summary": "Retourne la liste des diviseurs entiers de n, utilisée pour disposer les colonnes du dataset en grille quasi-carrée.",
+      "tags": [
+        "utility",
+        "math",
+        "grid"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/model/features.py:_filter",
+      "type": "function",
+      "name": "_filter",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        45,
+        61
+      ],
+      "summary": "Filtre le DataFrame selon les règles métier de l'application d'origine : discipline PLAT, nombre de déclarés partants entre 8 et 12, distance entre 1500 et 2100 m, avec conversion numérique des colonnes.",
+      "tags": [
+        "filter",
+        "data-preprocessing",
+        "validation"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/model/features.py:load_train",
+      "type": "function",
+      "name": "load_train",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        64,
+        88
+      ],
+      "summary": "Charge les `days` derniers jours d'apprentissage depuis DATA_TRAIN_DIR en concaténant les CSV filtrés ; accepte une date de référence pour le backtest et lève FileNotFoundError si aucun jour n'est disponible.",
+      "tags": [
+        "data-loading",
+        "data-preprocessing",
+        "machine-learning"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/model/features.py:load_query",
+      "type": "function",
+      "name": "load_query",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        91,
+        110
+      ],
+      "summary": "Charge un CSV de requête pour une date donnée, applique le filtre métier puis retire les colonnes de résultats (RESULT_COLUMNS) afin d'éviter toute fuite d'information vers le modèle.",
+      "tags": [
+        "data-loading",
+        "data-preprocessing",
+        "anti-leakage"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/model/features.py:encode",
+      "type": "function",
+      "name": "encode",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        113,
+        127
+      ],
+      "summary": "Encode les colonnes catégorielles communes entre le jeu d'apprentissage et la requête via LabelEncoder, en gérant les colonnes présentes dans un seul des deux DataFrames.",
+      "tags": [
+        "encoding",
+        "data-preprocessing",
+        "machine-learning"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/model/features.py:build_target",
+      "type": "function",
+      "name": "build_target",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        130,
+        132
+      ],
+      "summary": "Construit la cible d'apprentissage : 1 si le cheval est arrivé dans le top 3 (ordreArrivee < 3), 0 sinon.",
+      "tags": [
+        "labeling",
+        "machine-learning",
+        "target"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/model/features.py:select_features",
+      "type": "function",
+      "name": "select_features",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        135,
+        177
+      ],
+      "summary": "Sélectionne les features pertinentes par corrélation à `ordreArrivee` : conserve les colonnes dont la corrélation est supérieure ou égale à celle de `nom`, exclut `paris_*` et `incident_*`, et garantit la présence de `nom`.",
+      "tags": [
+        "feature-selection",
+        "correlation",
+        "machine-learning"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:canasson/publish/github.py",
+      "type": "file",
+      "name": "github.py",
+      "filePath": "canasson/publish/github.py",
+      "summary": "Publication des artefacts sur GitHub Pages (mylittlecanasson.github.io) : clone du dépôt dans le worktree, copie des artefacts générés (index, bethistory, candle, pages annexes), commit « comment from python script » et push, avec gestion gracieuse des échecs pour ne pas faire planter le pipeline.",
+      "tags": [
+        "deployment",
+        "git",
+        "publishing",
+        "github-pages"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Chaque étape (clone, copie, push) est isolée dans un bloc try/except : les échecs non bloquants sont logués en warning, seul l'échec du push est traité comme une vraie erreur."
+    },
+    {
+      "id": "function:canasson/publish/github.py:_copy_artifacts",
+      "type": "function",
+      "name": "_copy_artifacts",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        23,
+        31
+      ],
+      "summary": "Copie les artefacts générés (index.html, bethistory.html, candle.png) et les pages annexes (about, race, contact) depuis les templates dans le worktree du dépôt GitHub Pages.",
+      "tags": [
+        "deployment",
+        "filesystem",
+        "artifacts"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/publish/github.py:_git_push",
+      "type": "function",
+      "name": "_git_push",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        34,
+        40
+      ],
+      "summary": "Ajoute tous les changements, commite avec le message historique « comment from python script » et pousse vers la remote origin.",
+      "tags": [
+        "deployment",
+        "git",
+        "commit"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/publish/github.py:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        43,
+        73
+      ],
+      "summary": "Orchestre la publication : création des répertoires, clone du dépôt GitHub Pages, copie des artefacts puis push ; le flag `no_push` simule la publication localement. Chaque étape échoue gracieusement.",
+      "tags": [
+        "deployment",
+        "entry-point",
+        "orchestration"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:canasson/site/generate.py",
+      "type": "file",
+      "name": "generate.py",
+      "filePath": "canasson/site/generate.py",
+      "summary": "Génération de la page d'accueil index.html : pour les 7 derniers jours de pronostics, choisit la course à jouer sur l'écart maximal de rel_prob[1], construit l'article HTML avec graphique Chart.js et liens Canalturf, puis injecte le tout dans le template via le marqueur {%MAINCASE%}.",
+      "tags": [
+        "site-generation",
+        "html",
+        "static-site",
+        "template",
+        "tested"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Injection de template par remplacement de chaîne du marqueur `{%MAINCASE%}` : le HTML du graphique Chart.js est assemblé par concaténation de fragments JavaScript inline."
+    },
+    {
+      "id": "function:canasson/site/generate.py:_cturf_link",
+      "type": "function",
+      "name": "_cturf_link",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        21,
+        34
+      ],
+      "summary": "Construit les liens Canalturf pronostics/résultats pour une réunion-circuit donnés à partir des infos collectées, ou un lien archives au format ISO si les infos sont absentes.",
+      "tags": [
+        "html",
+        "links",
+        "utility"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/site/generate.py:_article",
+      "type": "function",
+      "name": "_article",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        37,
+        83
+      ],
+      "summary": "Construit le bloc HTML d'un jour de pronostics : titre, course choisie, commentaire, canvas Chart.js avec les rel_prob[1] de chaque cheval et mise en évidence du cheval le plus qualitatif (cribles).",
+      "tags": [
+        "html",
+        "chart",
+        "component"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:canasson/site/generate.py:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        86,
+        119
+      ],
+      "summary": "Régénère index.html : parcourt les répertoires de dates du plus récent au plus ancien, charge les response.json et infos.json, concatène les articles générés et remplace le marqueur {%MAINCASE%} du template avant d'écrire l'artefact.",
+      "tags": [
+        "site-generation",
+        "entry-point",
+        "template"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:tests/test_filters.py",
+      "type": "file",
+      "name": "test_filters.py",
+      "filePath": "tests/test_filters.py",
+      "summary": "Tests des filtres métier et du ciblage d'apprentissage : diviseurs de la grille (get_factors), filtres discipline/partants/distance (_filter), construction de la cible top 3 (build_target) et anti-fuite des résultats (load_query, load_train avec ref_date).",
+      "tags": [
+        "test",
+        "pytest",
+        "filters",
+        "regression-test"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_get_factors",
+      "type": "function",
+      "name": "test_get_factors",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        20,
+        23
+      ],
+      "summary": "Vérifie que get_factors retourne tous les diviseurs entiers de n (grille quasi-carrée).",
+      "tags": [
+        "test",
+        "unit-test",
+        "math"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_filter_discipline_et_courses",
+      "type": "function",
+      "name": "test_filter_discipline_et_courses",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        26,
+        40
+      ],
+      "summary": "Vérifie que _filter ne conserve que les courses PLAT avec 8 à 12 partants déclarés et une distance entre 1500 et 2100 m.",
+      "tags": [
+        "test",
+        "filters",
+        "business-rules"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_filter_types_mixtes",
+      "type": "function",
+      "name": "test_filter_types_mixtes",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        43,
+        56
+      ],
+      "summary": "Vérifie que _filter convertit correctement les colonnes numériques en types propres même en présence de valeurs mixtes (chaînes et nombres).",
+      "tags": [
+        "test",
+        "filters",
+        "type-conversion"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_build_target_top_place",
+      "type": "function",
+      "name": "test_build_target_top_place",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        59,
+        64
+      ],
+      "summary": "Vérifie que build_target produit 1 pour les chevaux arrivés dans le top 3 (ordreArrivee < 3) et 0 sinon.",
+      "tags": [
+        "test",
+        "labeling",
+        "target"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_filter_sans_ordre_arrivee",
+      "type": "function",
+      "name": "test_filter_sans_ordre_arrivee",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        67,
+        73
+      ],
+      "summary": "Vérifie que _filter fonctionne sans colonne ordreArrivee, comme dans un jeu de requête sans résultats.",
+      "tags": [
+        "test",
+        "filters",
+        "edge-case"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_result_columns_detecte_toute_la_fuite",
+      "type": "function",
+      "name": "test_result_columns_detecte_toute_la_fuite",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        76,
+        99
+      ],
+      "summary": "Vérifie que la regex RESULT_COLUMNS détecte toutes les colonnes de résultats (fuites potentielles) dans un DataFrame de requête.",
+      "tags": [
+        "test",
+        "anti-leakage",
+        "regex"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_filters.py:test_load_query_supprime_les_resultats",
+      "type": "function",
+      "name": "test_load_query_supprime_les_resultats",
+      "filePath": "tests/test_filters.py",
+      "lineRange": [
+        102,
+        133
+      ],
+      "summary": "Vérifie que load_query supprime les colonnes de résultats du jeu de requête et que load_train(days, ref_date) n'utilise jamais les jours postérieurs à la date de référence (backtest sans fuite d'information).",
+      "tags": [
+        "test",
+        "data-loading",
+        "anti-leakage",
+        "backtest"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:tests/test_strategy.py",
+      "type": "file",
+      "name": "test_strategy.py",
+      "filePath": "tests/test_strategy.py",
+      "summary": "Tests de la stratégie de jeu « CRAZY BET » : sélection de la course sur l'écart maximal de rel_prob[1], choix du cheval le plus qualitatif (prob[1] maximal) et calcul du ROI quotidien à partir des rapports réels du simple placé (perte et gain).",
+      "tags": [
+        "test",
+        "pytest",
+        "strategy",
+        "roi"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:tests/test_strategy.py:test_choose_course_max_ratio_delta",
+      "type": "function",
+      "name": "test_choose_course_max_ratio_delta",
+      "filePath": "tests/test_strategy.py",
+      "lineRange": [
+        16,
+        22
+      ],
+      "summary": "Vérifie que la course retenue par choose_course est celle au plus grand écart de rel_prob[1].",
+      "tags": [
+        "test",
+        "strategy",
+        "course-selection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_strategy.py:test_pick_horse_most_qualitative",
+      "type": "function",
+      "name": "test_pick_horse_most_qualitative",
+      "filePath": "tests/test_strategy.py",
+      "lineRange": [
+        25,
+        30
+      ],
+      "summary": "Vérifie que le cheval joué est celui au prob[1] maximal de la course choisie.",
+      "tags": [
+        "test",
+        "strategy",
+        "horse-selection"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_strategy.py:test_choose_course_empty",
+      "type": "function",
+      "name": "test_choose_course_empty",
+      "filePath": "tests/test_strategy.py",
+      "lineRange": [
+        33,
+        35
+      ],
+      "summary": "Vérifie que choose_course retourne des chaînes vides sur un jeu de données vide.",
+      "tags": [
+        "test",
+        "strategy",
+        "edge-case"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_strategy.py:_setup_gain",
+      "type": "function",
+      "name": "_setup_gain",
+      "filePath": "tests/test_strategy.py",
+      "lineRange": [
+        38,
+        58
+      ],
+      "summary": "Prépare un scénario de test : écrit response.json dans data_test/<date> et les rapports cachés (performances détaillées, rapports définitifs du simple placé) dans data_gain.",
+      "tags": [
+        "test",
+        "fixture",
+        "setup"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_strategy.py:test_evaluate_day_perte_comptee_sans_pronostics",
+      "type": "function",
+      "name": "test_evaluate_day_perte_comptee_sans_pronostics",
+      "filePath": "tests/test_strategy.py",
+      "lineRange": [
+        61,
+        71
+      ],
+      "summary": "Vérifie qu'un cheval non placé dans une course qui a couru génère une perte de -500 centimes, même si l'API pronostics ne fournit aucun texte.",
+      "tags": [
+        "test",
+        "roi",
+        "edge-case"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_strategy.py:test_evaluate_day_gain_place",
+      "type": "function",
+      "name": "test_evaluate_day_gain_place",
+      "filePath": "tests/test_strategy.py",
+      "lineRange": [
+        74,
+        82
+      ],
+      "summary": "Vérifie qu'un cheval placé empoche le dividende net du simple placé (5 €).",
+      "tags": [
+        "test",
+        "roi",
+        "payout"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:tests/test_template.py",
+      "type": "file",
+      "name": "test_template.py",
+      "filePath": "tests/test_template.py",
+      "summary": "Tests des templates HTML : présence du marqueur {%MAINCASE%} dans les templates, construction des liens Canalturf (pronostics/résultats et repli archives) et génération du bloc HTML d'un jour avec graphique Chart.js et cheval gagnant.",
+      "tags": [
+        "test",
+        "pytest",
+        "template",
+        "html"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_template.py:test_templates_contain_marker",
+      "type": "function",
+      "name": "test_templates_contain_marker",
+      "filePath": "tests/test_template.py",
+      "lineRange": [
+        10,
+        13
+      ],
+      "summary": "Vérifie que les templates index_template.html et bethistory-template.html conservent le marqueur d'injection {%MAINCASE%}.",
+      "tags": [
+        "test",
+        "template",
+        "marker"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_template.py:test_cturf_links_present",
+      "type": "function",
+      "name": "test_cturf_links_present",
+      "filePath": "tests/test_template.py",
+      "lineRange": [
+        16,
+        22
+      ],
+      "summary": "Vérifie que _cturf_link construit les liens pronostics/résultats depuis les infos Canalturf.",
+      "tags": [
+        "test",
+        "links",
+        "canalturf"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_template.py:test_cturf_archives_fallback",
+      "type": "function",
+      "name": "test_cturf_archives_fallback",
+      "filePath": "tests/test_template.py",
+      "lineRange": [
+        25,
+        28
+      ],
+      "summary": "Vérifie que _cturf_link retombe sur le lien archives au format ISO quand les infos Canalturf manquent.",
+      "tags": [
+        "test",
+        "links",
+        "edge-case"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tests/test_template.py:test_article_builds_chart_and_winner",
+      "type": "function",
+      "name": "test_article_builds_chart_and_winner",
+      "filePath": "tests/test_template.py",
+      "lineRange": [
+        31,
+        39
+      ],
+      "summary": "Vérifie que _article produit le bloc HTML complet d'un jour : course choisie, canvas Chart.js et cheval gagnant avec ses cribles.",
+      "tags": [
+        "test",
+        "html",
+        "component"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/evaluate/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "canasson/evaluate/__init__.py",
+      "summary": "Point d'entrée du sous-package d'évaluation : orchestre le calcul du ROI journalier (stratégie CRAZY BET) puis la régénération des artefacts bethistory.html et candle.png.",
+      "tags": [
+        "entry-point",
+        "orchestration",
+        "evaluation",
+        "roi"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Package Python dont l'entrée publique `run()` enchaîne évaluation du ROI et génération des artefacts."
+    },
+    {
+      "id": "function:canasson/evaluate/__init__.py:run",
+      "type": "function",
+      "name": "run",
+      "filePath": "canasson/evaluate/__init__.py",
+      "lineRange": [
+        11,
+        16
+      ],
+      "summary": "Calcule le ROI de chaque jour via `roi.evaluate_all()`, puis régénère bethistory.html et candle.png à partir des résultats obtenus.",
+      "tags": [
+        "orchestration",
+        "evaluation",
+        "roi"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/evaluate/bethistory.py",
+      "type": "file",
+      "name": "bethistory.py",
+      "filePath": "canasson/evaluate/bethistory.py",
+      "summary": "Génère bethistory.html en injectant le tableau des chevaux joués, gains et URL des circuits dans le template via le marqueur {%MAINCASE%}, les jours les plus récents en premier.",
+      "tags": [
+        "generation-html",
+        "template",
+        "rapport",
+        "evaluation"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Utilise un template HTML à marqueur d'injection {%MAINCASE%}, fidèle à la philosophie de l'application d'origine."
+    },
+    {
+      "id": "function:canasson/evaluate/bethistory.py:render",
+      "type": "function",
+      "name": "render",
+      "filePath": "canasson/evaluate/bethistory.py",
+      "lineRange": [
+        17,
+        29
+      ],
+      "summary": "Remplit le template bethistory-template.html avec les lignes du tableau de résultats et écrit data_test/bethistory.html, plus récent en premier.",
+      "tags": [
+        "generation-html",
+        "template",
+        "rapport"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/evaluate/chart.py",
+      "type": "file",
+      "name": "chart.py",
+      "filePath": "canasson/evaluate/chart.py",
+      "summary": "Trace candle.png : un chandelier par jour (vert pour un gain, rouge pour une perte sur la base d'un ticket de 5 €) ainsi que la courbe du ROI cumulé.",
+      "tags": [
+        "visualisation",
+        "graphique",
+        "matplotlib",
+        "evaluation"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "Port fidèle de la section « candle » de winrate_mylittlecanasson.py ; matplotlib en backend non-interactif Agg et DataFrame pandas pour les chandeliers."
+    },
+    {
+      "id": "function:canasson/evaluate/chart.py:render",
+      "type": "function",
+      "name": "render",
+      "filePath": "canasson/evaluate/chart.py",
+      "lineRange": [
+        24,
+        67
+      ],
+      "summary": "Construit le DataFrame des chandeliers journaliers, trace barres et courbe du ROI cumulé, puis enregistre candle.png dans data_test.",
+      "tags": [
+        "visualisation",
+        "matplotlib",
+        "graphique"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:canasson/evaluate/roi.py",
+      "type": "file",
+      "name": "roi.py",
+      "filePath": "canasson/evaluate/roi.py",
+      "summary": "Calcule le ROI journalier selon la stratégie « CRAZY BET » : récupère les résultats réels auprès de l'API PMU (performances, rapports définitifs, incidents) et joue le cheval le plus qualitatif en simple placé de 5 €.",
+      "tags": [
+        "calcul-roi",
+        "api-pmu",
+        "strategie",
+        "evaluation",
+        "tested"
+      ],
+      "complexity": "complex",
+      "languageNotes": "Port fidèle de winrate_mylittlecanasson.py ; les réponses de l'API PMU sont mises en cache localement dans data_gain via `_cached_get_json`."
+    },
+    {
+      "id": "class:canasson/evaluate/roi.py:DayResult",
+      "type": "class",
+      "name": "DayResult",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        31,
+        36
+      ],
+      "summary": "Dataclass représentant le résultat d'évaluation d'un jour : date, ROI en centimes et fragment HTML pour le tableau de bethistory.",
+      "tags": [
+        "data-model",
+        "dataclass",
+        "roi"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/evaluate/roi.py:_cached_get_json",
+      "type": "function",
+      "name": "_cached_get_json",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        39,
+        45
+      ],
+      "summary": "Effectue un GET JSON avec cache local dans data_gain : renvoie le fichier s'il existe, sinon interroge l'API PMU et persiste la réponse.",
+      "tags": [
+        "cache",
+        "http",
+        "api-pmu"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/evaluate/roi.py:_race_outcome",
+      "type": "function",
+      "name": "_race_outcome",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        48,
+        105
+      ],
+      "summary": "Construit le mapping {nomCheval: dividende} d'une course à partir des résultats réels (performances détaillées, rapports définitifs, incidents) ; renvoie un dict vide si la course n'est pas terminée.",
+      "tags": [
+        "api-pmu",
+        "resultats",
+        "parsing"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:canasson/evaluate/roi.py:choose_course",
+      "type": "function",
+      "name": "choose_course",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        108,
+        130
+      ],
+      "summary": "Sélectionne la course à jouer : celle présentant l'écart de rel_prob[1] maximal (cheval n°1 vs n°2) dans les pronostics du jour.",
+      "tags": [
+        "strategie",
+        "selection-course",
+        "pronostics"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:canasson/evaluate/roi.py:pick_horse",
+      "type": "function",
+      "name": "pick_horse",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        133,
+        141
+      ],
+      "summary": "Sélectionne le cheval le plus qualitatif de la course choisie, soit celui au prob[1] maximal.",
+      "tags": [
+        "strategie",
+        "selection-cheval",
+        "pronostics"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:canasson/evaluate/roi.py:evaluate_day",
+      "type": "function",
+      "name": "evaluate_day",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        144,
+        195
+      ],
+      "summary": "Évalue une journée : charge response.json, interroge l'API PMU pour les résultats réels, joue le cheval sélectionné en simple placé de 5 € et calcule le ROI (gain, remboursement ou perte) du jour.",
+      "tags": [
+        "evaluation",
+        "roi",
+        "api-pmu"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "function:canasson/evaluate/roi.py:evaluate_all",
+      "type": "function",
+      "name": "evaluate_all",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        198,
+        210
+      ],
+      "summary": "Évalue tous les jours disposant d'un response.json en ordre chronologique et renvoie la liste des DayResult pour la génération des artefacts.",
+      "tags": [
+        "evaluation",
+        "roi",
+        "parcours"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "service:Dockerfile",
+      "type": "service",
+      "name": "Dockerfile",
+      "filePath": "Dockerfile",
+      "summary": "Image d'exécution Python 3.11-slim pour le pipeline canasson : installe git et openssh-client (nécessaires au clone/push GitHub Pages), copie le paquet, l'installe via pip (console script canasson.cli:main), puis lance le pipeline complet via l'ENTRYPOINT `canasson` avec la commande par défaut `run`.",
+      "tags": [
+        "conteneurisation",
+        "infrastructure",
+        "deploiement",
+        "pipeline"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Image à étape unique sur base slim. L'ENTRYPOINT pointe le console script `canasson` déclaré dans pyproject.toml et CMD fournit la sous-commande `run` — surchargeable par docker compose."
+    },
+    {
+      "id": "service:Dockerfile:python",
+      "type": "service",
+      "name": "python",
+      "filePath": "Dockerfile",
+      "lineRange": [
+        4,
+        19
+      ],
+      "summary": "Étape de construction basée sur l'image `python:3.11-slim`, socle d'exécution du pipeline canasson (collecte, ML, calcul du ROI, génération du site et publication).",
+      "tags": [
+        "conteneurisation",
+        "image-de-base",
+        "python"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:docker-compose.yml",
+      "type": "config",
+      "name": "docker-compose.yml",
+      "filePath": "docker-compose.yml",
+      "summary": "Configuration Docker Compose du service `canasson` : construit l'image depuis le Dockerfile, monte le volume `./data` et le répertoire SSH en lecture seule, injecte `GIT_REPO_URL` pour la publication GitHub Pages, puis exécute le pipeline complet (`canasson run`) avant l'arrêt propre du conteneur.",
+      "tags": [
+        "orchestration",
+        "infrastructure",
+        "deploiement",
+        "docker-compose",
+        "configuration"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.env.example",
+      "type": "config",
+      "name": ".env.example",
+      "filePath": ".env.example",
+      "summary": "Exemple de configuration d'environnement définissant les variables requises pour le déploiement : GIT_REPO_URL (dépôt GitHub Pages cloné en SSH), CANASSON_DATA_DIR (répertoire des données runtime) et SSH_DIR (emplacement de la clé SSH montée en lecture seule dans le conteneur).",
+      "tags": [
+        "configuration",
+        "environnement",
+        "deploiement",
+        "github-pages",
+        "secrets"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Documentation principale du projet Canasson : philosophie métier (stratégie « CRAZY BET »), pipeline collect → predict → evaluate → site → publish, usage de la CLI et de Docker Compose, structure du code, backtest sans fuite d'information et déploiement GitHub Pages.",
+      "tags": [
+        "documentation",
+        "readme",
+        "guide",
+        "architecture",
+        "deploiement"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:pyproject.toml",
+      "type": "config",
+      "name": "pyproject.toml",
+      "filePath": "pyproject.toml",
+      "summary": "Configuration de packaging et de build du paquet Python « canasson » : métadonnées du projet, dépendances (pandas, numpy, scikit-learn, matplotlib, seaborn, requests, beautifulsoup4, GitPython), console script « canasson » pointant vers canasson.cli:main et options pytest.",
+      "tags": [
+        "configuration",
+        "python",
+        "packaging",
+        "build-system",
+        "dependencies"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/site/templates/about.html",
+      "type": "file",
+      "name": "about.html",
+      "filePath": "canasson/site/templates/about.html",
+      "summary": "Page statique « À propos » du site généré : biographie de l'auteur (ingénieur passionné d'IA et de cybersécurité), dans la structure commune du site avec en-tête de navigation, bannière de jeu responsable et bouton de don PayPal.",
+      "tags": [
+        "template-html",
+        "page-statique",
+        "presentation",
+        "frontend"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/site/templates/bethistory-template.html",
+      "type": "file",
+      "name": "bethistory-template.html",
+      "filePath": "canasson/site/templates/bethistory-template.html",
+      "summary": "Template de la page d'historique des paris : le marqueur `{%MAINCASE%}` reçoit le contenu injecté par `canasson/evaluate/bethistory.py` (graphique et tableau des gains), avec un encart expliquant le calcul du ROI basé sur une mise de 5€.",
+      "tags": [
+        "template-html",
+        "historique",
+        "injection-template",
+        "visualisation",
+        "frontend"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Le placeholder `{%MAINCASE%}` est remplacé à la lecture par le générateur Python (philosophie d'injection de l'application Mylittlecanasson d'origine) ; un style CSS inline délimite le tableau de l'historique."
+    },
+    {
+      "id": "file:canasson/site/templates/contact.html",
+      "type": "file",
+      "name": "contact.html",
+      "filePath": "canasson/site/templates/contact.html",
+      "summary": "Page statique « Contact » : intègre un formulaire Google Forms dans une iframe, au sein de la structure commune du site (Simple.css, navigation partagée, mentions de jeu responsable et don PayPal).",
+      "tags": [
+        "template-html",
+        "page-statique",
+        "contact",
+        "frontend"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:canasson/site/templates/index_template.html",
+      "type": "file",
+      "name": "index_template.html",
+      "filePath": "canasson/site/templates/index_template.html",
+      "summary": "Template de la page d'accueil : définit la fonction JavaScript globale `drawBarChart` (Chart.js) et le marqueur `{%MAINCASE%}` où `canasson/site/generate.py` injecte les pronostics IA des 7 derniers jours avec graphiques en barres.",
+      "tags": [
+        "template-html",
+        "accueil",
+        "chartjs",
+        "injection-template",
+        "frontend"
+      ],
+      "complexity": "simple",
+      "languageNotes": "La fonction `drawBarChart(target_id, target_title, xValues, yValues, barColors)` est appelée par les blocs HTML générés par generate.py pour dessiner les graphiques Chart.js (échelle y fixée de 0 à 50)."
+    },
+    {
+      "id": "file:canasson/site/templates/race.html",
+      "type": "file",
+      "name": "race.html",
+      "filePath": "canasson/site/templates/race.html",
+      "summary": "Page statique « About race » : article expliquant pourquoi le pari placé est avantageux sur les courses de galop plat (8 à 12 partants, circuits de 1600 m), avec image illustrant la sélection et mise en garde sur les risques du jeu.",
+      "tags": [
+        "template-html",
+        "page-statique",
+        "article",
+        "frontend"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.ua/.understandignore",
+      "type": "config",
+      "name": ".understandignore",
+      "filePath": ".ua/.understandignore",
+      "summary": "Fichier de patterns du plugin Understand-Anything (syntaxe proche de .gitignore) listant les fichiers et dossiers à exclure de l'analyse : data/, caches Python, artefacts de build et fichiers sensibles.",
+      "tags": [
+        "configuration",
+        "analyse",
+        "exclusions",
+        "patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:.ua/config.json",
+      "type": "config",
+      "name": "config.json",
+      "filePath": ".ua/config.json",
+      "summary": "Configuration du plugin Understand-Anything définissant la langue de sortie de l'analyse de code (français).",
+      "tags": [
+        "configuration",
+        "plugin",
+        "langue"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:tests/conftest.py",
+      "type": "file",
+      "name": "conftest.py",
+      "filePath": "tests/conftest.py",
+      "summary": "Module pytest auto-chargé fournissant les fixtures partagées de la suite de tests, notamment la fixture de session `response` qui charge le fichier de test `tests/fixtures/response.json` et le renvoie sous forme de dict.",
+      "tags": [
+        "test",
+        "fixture",
+        "conftest",
+        "test-infrastructure"
+      ],
+      "complexity": "simple",
+      "languageNotes": "Module conftest.py chargé automatiquement par pytest ; la fixture `response` utilise un scope de session et suit le schéma de production via json.load."
+    },
+    {
+      "id": "function:tests/conftest.py:response",
+      "type": "function",
+      "name": "response",
+      "filePath": "tests/conftest.py",
+      "lineRange": [
+        13,
+        15
+      ],
+      "summary": "Fixture pytest (scope session) qui charge le JSON de test depuis `tests/fixtures/response.json` et renvoie un dict respectant le schéma de production.",
+      "tags": [
+        "test",
+        "fixture",
+        "chargement-json"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:tests/fixtures/response.json",
+      "type": "config",
+      "name": "response.json",
+      "filePath": "tests/fixtures/response.json",
+      "summary": "Jeu de données de test simulant les réponses de l'API PMU : deux réunions (r1/r2) avec courses (c5/c7), chacune fournissant url, commentaire, total_prob et une liste de chevaux fictifs avec probabilités.",
+      "tags": [
+        "test",
+        "fixture",
+        "donnees-de-test",
+        "json"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:_configure_logging",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:_configure_logging",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_collect",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_collect",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_predict",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_predict",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_evaluate",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_evaluate",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_site",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_site",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_publish",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_publish",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_backfill",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_backfill",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_rerun",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_rerun",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:cmd_run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:build_parser",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:build_parser",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:main",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "function:canasson/cli.py:main",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/canalturf.py",
+      "target": "function:canasson/collect/canalturf.py:_parse_archive",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/canalturf.py",
+      "target": "function:canasson/collect/canalturf.py:_parse_archive",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/canalturf.py",
+      "target": "function:canasson/collect/canalturf.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/canalturf.py",
+      "target": "function:canasson/collect/canalturf.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:flatten_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:flatten_json",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:normalize_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:normalize_json",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:write_json_in_csv",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:write_json_in_csv",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_course_with_eparis",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_course_with_eparis",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_collected",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_collected",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_fetch_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_fetch_json",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_download_day",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:_download_day",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:download_data",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:download_data",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:download_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:download_query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "function:canasson/collect/pmu.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:default_date",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:default_date",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_as_int",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_as_int",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_save_heatmap",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_save_heatmap",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_predict_rows",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_predict_rows",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_normalize_winrates",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:_normalize_winrates",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "function:canasson/model/predict.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_response_schema",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_response_schema",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_horse_fields",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_horse_fields",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_as_int_convertit_floats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_as_int_convertit_floats",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_rel_prob_coherent",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "function:tests/test_schema.py:test_rel_prob_coherent",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/collect/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/collect/canalturf.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/collect/pmu.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/evaluate/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/model/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/model/predict.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/publish/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/site/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/cli.py",
+      "target": "file:canasson/site/generate.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/collect/canalturf.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/collect/canalturf.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/collect/pmu.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "file:canasson/model/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "file:canasson/model/features.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_schema.py",
+      "target": "file:canasson/model/predict.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_collect",
+      "target": "function:canasson/collect/pmu.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_collect",
+      "target": "function:canasson/collect/canalturf.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_predict",
+      "target": "function:canasson/model/predict.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_evaluate",
+      "target": "function:canasson/evaluate/__init__.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_site",
+      "target": "function:canasson/site/generate.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_backfill",
+      "target": "function:canasson/collect/pmu.py:download_data",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_backfill",
+      "target": "function:canasson/collect/pmu.py:download_query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_backfill",
+      "target": "function:canasson/model/predict.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_rerun",
+      "target": "function:canasson/model/predict.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_rerun",
+      "target": "function:canasson/evaluate/__init__.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_run",
+      "target": "function:canasson/collect/pmu.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_run",
+      "target": "function:canasson/collect/canalturf.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_run",
+      "target": "function:canasson/model/predict.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_run",
+      "target": "function:canasson/evaluate/__init__.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/cli.py:cmd_run",
+      "target": "function:canasson/site/generate.py:run",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/collect/canalturf.py:run",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/collect/pmu.py:run",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/model/predict.py:run",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/model/predict.py:run",
+      "target": "function:canasson/model/features.py:load_train",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/model/predict.py:run",
+      "target": "function:canasson/model/features.py:load_query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/model/predict.py:run",
+      "target": "function:canasson/model/features.py:encode",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/model/predict.py:run",
+      "target": "function:canasson/model/features.py:select_features",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_schema.py:test_as_int_convertit_floats",
+      "target": "function:canasson/model/predict.py:_as_int",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/predict.py",
+      "target": "file:tests/test_schema.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/config.py",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/config.py",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:get_factors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:get_factors",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:_filter",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:_filter",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:load_train",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:load_train",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:load_query",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:load_query",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:encode",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:encode",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:build_target",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:build_target",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:select_features",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "function:canasson/model/features.py:select_features",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "function:canasson/publish/github.py:_copy_artifacts",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "function:canasson/publish/github.py:_copy_artifacts",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "function:canasson/publish/github.py:_git_push",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "function:canasson/publish/github.py:_git_push",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "function:canasson/publish/github.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "function:canasson/publish/github.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "function:canasson/site/generate.py:_cturf_link",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "function:canasson/site/generate.py:_cturf_link",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "function:canasson/site/generate.py:_article",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "function:canasson/site/generate.py:_article",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "function:canasson/site/generate.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "function:canasson/site/generate.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_get_factors",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_get_factors",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_filter_discipline_et_courses",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_filter_discipline_et_courses",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_filter_types_mixtes",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_filter_types_mixtes",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_build_target_top_place",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_build_target_top_place",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_filter_sans_ordre_arrivee",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_filter_sans_ordre_arrivee",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_result_columns_detecte_toute_la_fuite",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_result_columns_detecte_toute_la_fuite",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_load_query_supprime_les_resultats",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "function:tests/test_filters.py:test_load_query_supprime_les_resultats",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_choose_course_max_ratio_delta",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_choose_course_max_ratio_delta",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_pick_horse_most_qualitative",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_pick_horse_most_qualitative",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_choose_course_empty",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_choose_course_empty",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:_setup_gain",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:_setup_gain",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_evaluate_day_perte_comptee_sans_pronostics",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_evaluate_day_perte_comptee_sans_pronostics",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_evaluate_day_gain_place",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "function:tests/test_strategy.py:test_evaluate_day_gain_place",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_templates_contain_marker",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_templates_contain_marker",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_cturf_links_present",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_cturf_links_present",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_cturf_archives_fallback",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_cturf_archives_fallback",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_article_builds_chart_and_winner",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "function:tests/test_template.py:test_article_builds_chart_and_winner",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/publish/github.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "file:canasson/evaluate/roi.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_filters.py",
+      "target": "file:canasson/model/features.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_strategy.py",
+      "target": "file:canasson/evaluate/roi.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tests/test_template.py",
+      "target": "file:canasson/site/generate.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "function:canasson/publish/github.py:run",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/site/generate.py:run",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/site/generate.py:_article",
+      "target": "function:canasson/evaluate/roi.py:choose_course",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_get_factors",
+      "target": "function:canasson/model/features.py:get_factors",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_filter_discipline_et_courses",
+      "target": "function:canasson/model/features.py:_filter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_filter_types_mixtes",
+      "target": "function:canasson/model/features.py:_filter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_build_target_top_place",
+      "target": "function:canasson/model/features.py:build_target",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_filter_sans_ordre_arrivee",
+      "target": "function:canasson/model/features.py:_filter",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_load_query_supprime_les_resultats",
+      "target": "function:canasson/model/features.py:load_query",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_filters.py:test_load_query_supprime_les_resultats",
+      "target": "function:canasson/model/features.py:load_train",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_strategy.py:test_choose_course_max_ratio_delta",
+      "target": "function:canasson/evaluate/roi.py:choose_course",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_strategy.py:test_pick_horse_most_qualitative",
+      "target": "function:canasson/evaluate/roi.py:pick_horse",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_strategy.py:test_choose_course_empty",
+      "target": "function:canasson/evaluate/roi.py:choose_course",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_strategy.py:test_evaluate_day_perte_comptee_sans_pronostics",
+      "target": "function:canasson/evaluate/roi.py:evaluate_day",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_strategy.py:test_evaluate_day_gain_place",
+      "target": "function:canasson/evaluate/roi.py:evaluate_day",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_template.py:test_cturf_links_present",
+      "target": "function:canasson/site/generate.py:_cturf_link",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_template.py:test_cturf_archives_fallback",
+      "target": "function:canasson/site/generate.py:_cturf_link",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tests/test_template.py:test_article_builds_chart_and_winner",
+      "target": "function:canasson/site/generate.py:_article",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/model/features.py",
+      "target": "file:tests/test_filters.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/config.py",
+      "target": "file:tests/test_filters.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "file:tests/test_strategy.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/config.py",
+      "target": "file:tests/test_strategy.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "file:tests/test_template.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/config.py",
+      "target": "file:tests/test_template.py",
+      "type": "tested_by",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/evaluate/__init__.py",
+      "target": "file:canasson/evaluate/bethistory.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/__init__.py",
+      "target": "file:canasson/evaluate/chart.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/__init__.py",
+      "target": "file:canasson/evaluate/roi.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/bethistory.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/bethistory.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/bethistory.py",
+      "target": "file:canasson/evaluate/roi.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/chart.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/chart.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/chart.py",
+      "target": "file:canasson/evaluate/roi.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "file:canasson/__init__.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "file:canasson/config.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:canasson/evaluate/__init__.py",
+      "target": "function:canasson/evaluate/__init__.py:run",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/bethistory.py",
+      "target": "function:canasson/evaluate/bethistory.py:render",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/chart.py",
+      "target": "function:canasson/evaluate/chart.py:render",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "class:canasson/evaluate/roi.py:DayResult",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:_cached_get_json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:_race_outcome",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:choose_course",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:pick_horse",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:evaluate_day",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:evaluate_all",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:canasson/evaluate/__init__.py",
+      "target": "function:canasson/evaluate/__init__.py:run",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/bethistory.py",
+      "target": "function:canasson/evaluate/bethistory.py:render",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/chart.py",
+      "target": "function:canasson/evaluate/chart.py:render",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "class:canasson/evaluate/roi.py:DayResult",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:_cached_get_json",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:_race_outcome",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:choose_course",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:pick_horse",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:evaluate_day",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:canasson/evaluate/roi.py",
+      "target": "function:canasson/evaluate/roi.py:evaluate_all",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/evaluate/__init__.py:run",
+      "target": "function:canasson/evaluate/roi.py:evaluate_all",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/evaluate/__init__.py:run",
+      "target": "function:canasson/evaluate/bethistory.py:render",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/evaluate/__init__.py:run",
+      "target": "function:canasson/evaluate/chart.py:render",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "function:canasson/evaluate/roi.py:evaluate_all",
+      "target": "function:canasson/config.py:ensure_dirs",
+      "type": "calls",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "service:Dockerfile:python",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "file:canasson/cli.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "service:Dockerfile",
+      "target": "config:pyproject.toml",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "service:Dockerfile",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "file:canasson/cli.py",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "file:canasson/config.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:canasson/cli.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "service:Dockerfile",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:canasson/publish/github.py",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "config:.env.example",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:pyproject.toml",
+      "target": "file:canasson/cli.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:pyproject.toml",
+      "target": "file:canasson/__init__.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:pyproject.toml",
+      "target": "document:README.md",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.env.example",
+      "target": "file:canasson/config.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:.env.example",
+      "target": "file:canasson/publish/github.py",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:canasson/site/generate.py",
+      "target": "file:canasson/site/templates/index_template.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:canasson/evaluate/bethistory.py",
+      "target": "file:canasson/site/templates/bethistory-template.html",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "file:canasson/site/templates/about.html",
+      "target": "file:canasson/site/templates/bethistory-template.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/about.html",
+      "target": "file:canasson/site/templates/contact.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/about.html",
+      "target": "file:canasson/site/templates/index_template.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/about.html",
+      "target": "file:canasson/site/templates/race.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/bethistory-template.html",
+      "target": "file:canasson/site/templates/contact.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/bethistory-template.html",
+      "target": "file:canasson/site/templates/index_template.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/bethistory-template.html",
+      "target": "file:canasson/site/templates/race.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/contact.html",
+      "target": "file:canasson/site/templates/index_template.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/contact.html",
+      "target": "file:canasson/site/templates/race.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:canasson/site/templates/index_template.html",
+      "target": "file:canasson/site/templates/race.html",
+      "type": "related",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "file:tests/conftest.py",
+      "target": "function:tests/conftest.py:response",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:tests/conftest.py",
+      "target": "function:tests/conftest.py:response",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "file:tests/conftest.py",
+      "target": "config:tests/fixtures/response.json",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "document:README.md",
+      "target": "config:docker-compose.yml",
+      "type": "documents",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "config:.env.example",
+      "target": "config:docker-compose.yml",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:core",
+      "name": "Noyau & Orchestration",
+      "description": "Racine du paquet canasson : point d'entrée CLI orchestrant tout le pipeline (collect, predict, evaluate, site, publish), API publique ré-exportée et configuration partagée (chemins, constantes) utilisée par l'ensemble du projet.",
+      "nodeIds": [
+        "file:canasson/cli.py",
+        "file:canasson/__init__.py",
+        "file:canasson/config.py"
+      ]
+    },
+    {
+      "id": "layer:collect",
+      "name": "Collecte de données",
+      "description": "Ingestion des données de course : téléchargement du programme PMU, des participants et des pronostics depuis l'API, plus scraping de Canalturf, le tout sérialisé en CSV pour l'apprentissage et le test.",
+      "nodeIds": [
+        "file:canasson/collect/__init__.py",
+        "file:canasson/collect/pmu.py",
+        "file:canasson/collect/canalturf.py"
+      ]
+    },
+    {
+      "id": "layer:model",
+      "name": "Modèle & Prédiction",
+      "description": "Apprentissage automatique : ingénierie de caractéristiques (features) et prédiction des probabilités de classement des chevaux à partir des données collectées.",
+      "nodeIds": [
+        "file:canasson/model/__init__.py",
+        "file:canasson/model/features.py",
+        "file:canasson/model/predict.py"
+      ]
+    },
+    {
+      "id": "layer:evaluate",
+      "name": "Évaluation & ROI",
+      "description": "Analyse des performances de la stratégie de jeu CRAZY BET : calcul du ROI quotidien à partir des rapports réels, historique des paris joués et génération des graphiques associés.",
+      "nodeIds": [
+        "file:canasson/evaluate/__init__.py",
+        "file:canasson/evaluate/roi.py",
+        "file:canasson/evaluate/bethistory.py",
+        "file:canasson/evaluate/chart.py"
+      ]
+    },
+    {
+      "id": "layer:site",
+      "name": "Génération du site",
+      "description": "Production du site statique : génération des pages (bethistory.html et pages d'information) en injectant les résultats dans les templates HTML du sous-paquet templates.",
+      "nodeIds": [
+        "file:canasson/site/__init__.py",
+        "file:canasson/site/generate.py",
+        "file:canasson/site/templates/about.html",
+        "file:canasson/site/templates/bethistory-template.html",
+        "file:canasson/site/templates/contact.html",
+        "file:canasson/site/templates/index_template.html",
+        "file:canasson/site/templates/race.html"
+      ]
+    },
+    {
+      "id": "layer:publish",
+      "name": "Publication",
+      "description": "Diffusion du site statique généré sur GitHub Pages via des opérations git (clone, mise à jour des fichiers, push).",
+      "nodeIds": [
+        "file:canasson/publish/__init__.py",
+        "file:canasson/publish/github.py"
+      ]
+    },
+    {
+      "id": "layer:test",
+      "name": "Tests",
+      "description": "Suite de tests pytest couvrant le schéma de données, les filtres, la stratégie CRAZY BET et les templates, avec fixtures JSON simulant les réponses de l'API PMU.",
+      "nodeIds": [
+        "file:tests/conftest.py",
+        "file:tests/test_schema.py",
+        "file:tests/test_filters.py",
+        "file:tests/test_strategy.py",
+        "file:tests/test_template.py",
+        "config:tests/fixtures/response.json"
+      ]
+    },
+    {
+      "id": "layer:infrastructure",
+      "name": "Infrastructure",
+      "description": "Conteneurisation et déploiement : Dockerfiles (multi-stage, dont variante python) et orchestration Docker Compose avec variables d'environnement pour exécuter le pipeline complet.",
+      "nodeIds": [
+        "service:Dockerfile",
+        "service:Dockerfile:python",
+        "config:docker-compose.yml",
+        "config:.env.example"
+      ]
+    },
+    {
+      "id": "layer:config",
+      "name": "Configuration & Documentation",
+      "description": "Fichiers de configuration racine du projet Python (pyproject.toml), paramètres internes du plugin d'analyse (.ua) et documentation générale (README) décrivant l'application Mylittlecanasson.",
+      "nodeIds": [
+        "config:pyproject.toml",
+        "config:.ua/.understandignore",
+        "config:.ua/config.json",
+        "document:README.md"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Vue d'ensemble du projet",
+      "description": "Le README présente le projet Canasson : un système de prédiction hippique (PMU) reconstruit à partir de l'ancienne application Mylittlecanasson, avec la même philosophie mais une seule application structurée et testée, exécutable par un simple `docker compose up`. Il expose la stratégie de jeu « CRAZY BET », le pipeline en cinq étapes (collect → predict → evaluate → site → publish) et le schéma de données response.json qui relie toutes les briques. C'est la feuille de route de la visite qui suit : chaque étape du pipeline sera détaillée dans les chapitres suivants.",
+      "nodeIds": [
+        "document:README.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Point d'entrée CLI",
+      "description": "cli.py est le point d'entrée de l'application : il expose les sous-commandes collect, predict, evaluate, site, publish, rerun, backfill et run, ce dernier lançant le pipeline complet. pyproject.toml déclare cette entrée comme console script « canasson » pointant vers canasson.cli:main, ce qui permet d'invoquer l'outil par `canasson run` — y compris comme ENTRYPOINT du conteneur Docker. Suivre main() donne une vue d'ensemble de l'orchestration des modules métier que la suite de la visite détaille.",
+      "nodeIds": [
+        "file:canasson/cli.py",
+        "config:pyproject.toml"
+      ],
+      "languageLesson": "En Python, un console script défini dans pyproject.toml ([project.scripts]) transforme une fonction en commande exécutable installée : `canasson.cli:main` devient la commande `canasson`. La CLI s'appuie sur argparse avec des sous-commandes (subparsers), chacune ayant ses propres arguments (ex. DATE, --no-publish)."
+    },
+    {
+      "order": 3,
+      "title": "Configuration et initialisation",
+      "description": "config.py est le nœud le plus importé du projet (fan-in maximal) : il centralise les constantes métier — filtres d'apprentissage (discipline PLAT, 8 à 12 partants, distance 1500-2100 m), endpoints PMU/Canalturf, paramètres du pipeline — et les chemins de données pilotés par l'environnement, avec ensure_dirs() pour créer les répertoires runtime. __init__.py porte la docstring du projet et sa version, définissant le contrat sémantique du paquet. Tous les modules métier partent de ces deux fondations : c'est le bon endroit pour comprendre le vocabulaire commun avant de plonger dans le pipeline.",
+      "nodeIds": [
+        "file:canasson/config.py",
+        "file:canasson/__init__.py"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Collecte des données",
+      "description": "Ce chapitre couvre la première étape du pipeline : la collecte. pmu.py télécharge depuis l'API PMU le programme des courses, les participants et les pronostics détaillés, puis sérialise le tout en CSV — data_train/<date>.csv pour les 60 jours d'apprentissage, data_test/<demain>/query.csv pour la prédiction. canalturf.py scrape les archives de canalturf.com en parcourant le passé jusqu'à 59 jours, avec un cache local dans data_cturf/<date>/ et produit infos.json. Les deux modules implémentent un repli gracieux quand l'API throttle, une préoccupation centrale pour un pipeline qui tourne en continu via Docker Compose.",
+      "nodeIds": [
+        "file:canasson/collect/pmu.py",
+        "file:canasson/collect/canalturf.py"
+      ],
+      "languageLesson": "La collecte réseau repose sur deux motifs Python : le cache local (réutiliser les fichiers déjà téléchargés dans data_cturf/ au lieu de re-scraper) et le repli gracieux (attraper les erreurs HTTP et les timeouts pour reporter l'échec au lieu de faire planter le pipeline). Ces motifs rendent un pipeline long-courrier robuste aux ratés des API externes."
+    },
+    {
+      "order": 5,
+      "title": "Ingénierie de features",
+      "description": "features.py transforme les CSV collectés en matrice d'apprentissage : il applique les filtres métier de config.py (discipline PLAT, nombre de partants, distance), encode les colonnes catégorielles et sélectionne les features par corrélation à la colonne cible ordreArrivee. La fonction build_target construit la cible des places 1/2/3 à partir des arrivées réelles. Le module fait le pont entre la collecte (chapitre 4) et l'entraînement (chapitre 6) : c'est ici que se joue la qualité du modèle.",
+      "nodeIds": [
+        "file:canasson/model/features.py"
+      ],
+      "languageLesson": "L'anti-fuite (data leakage) est un piège classique du ML : si les colonnes de résultat (ordreArrivee) restaient dans la requête, le modèle tricherait. Ici, load_query supprime les résultats et load_train prend une ref_date pour ne jamais apprendre sur le futur — un motif vérifié par test_filters.py."
+    },
+    {
+      "order": 6,
+      "title": "Entraînement et prédiction",
+      "description": "predict.py entraîne un RandomForest sur les 60 jours d'historique préparés au chapitre 5 et prédit pour la date cible la probabilité de classement de chaque cheval. Les probabilités sont normalisées par circuit et sérialisées dans data_test/<date>/response.json, accompagnées d'une heatmap et d'une matrice de confusion. Ce fichier produit donc le contrat de données central dont dépendent l'évaluation et la génération du site.",
+      "nodeIds": [
+        "file:canasson/model/predict.py"
+      ],
+      "languageLesson": "Avec scikit-learn, on entraîne un RandomForestClassifier avec fit puis on prédit avec predict_proba. Normaliser les probabilités par circuit (division par la somme des probabilités de la course) garantit que les rel_prob forment une distribution cohérente — cohérence vérifiée par test_schema.py."
+    },
+    {
+      "order": 7,
+      "title": "Le contrat de données response.json",
+      "description": "Le fichier response.json est le cœur du système : son schéma {r1: {c5: {url, commentaire, total_prob, horses: [{nom, nom_query, numPmu_query, cribles, prob, rel_prob}]}}} est produit par predict.py (chapitre 6) puis consommé par la stratégie de jeu et le site. Le fixture de test tests/fixtures/response.json simule deux réunions avec chevaux fictifs pour tester sans appeler l'API, chargé par la fixture pytest conftest.py. test_schema.py verrouille ce contrat : structure des réunions/courses, champs des chevaux et cohérence numérique de rel_prob et total_prob.",
+      "nodeIds": [
+        "config:tests/fixtures/response.json",
+        "file:tests/conftest.py",
+        "file:tests/test_schema.py"
+      ],
+      "languageLesson": "En pytest, une fixture (conftest.py) crée des données réutilisables : la fixture `response` charge le JSON de test et le renvoie en dict, isolant les tests de tout appel réseau. Vérifier la cohérence numérique d'un schéma (somme des probabilités, plage de rel_prob) par des tests dédiés est une forme de contrat de données entre modules."
+    },
+    {
+      "order": 8,
+      "title": "Stratégie de jeu et ROI",
+      "description": "roi.py implémente la stratégie « CRAZY BET » décrite dans le README : choisir la course où l'écart de rel_prob[1] entre le n°1 et le n°2 est maximal, puis jouer le cheval le plus qualitatif (prob[1] maximal) en simple placé de 5 €. evaluate_day récupère auprès de l'API PMU les rapports réels (performances, dividendes, incidents) pour calculer le gain ou la perte quotidienne, et la classe DayResult agrège le résultat par jour. C'est la brique qui transforme les prédictions en ROI mesurable.",
+      "nodeIds": [
+        "file:canasson/evaluate/roi.py"
+      ],
+      "languageLesson": "La dataclass DayResult illustre un motif Python idiomatique : déclarer des champs typés avec @dataclass évite d'écrire __init__, __repr__ et __eq__ à la main, tout en documentant la forme des données du domaine."
+    },
+    {
+      "order": 9,
+      "title": "Artefacts d'évaluation",
+      "description": "Le sous-paquet evaluate orchestre le calcul du ROI (roi.py, chapitre 8) puis régénère les artefacts visuels : bethistory.py injecte dans un template le tableau des chevaux joués, gains et URL des circuits via le marqueur {%MAINCASE%}, produisant bethistory.html ; chart.py trace candle.png, un chandelier par jour (vert pour un gain, rouge pour une perte) avec la courbe du ROI cumulé. Ces fichiers montrent comment les données d'évaluation deviennent des livrables du site statique du chapitre suivant.",
+      "nodeIds": [
+        "file:canasson/evaluate/__init__.py",
+        "file:canasson/evaluate/bethistory.py",
+        "file:canasson/evaluate/chart.py"
+      ]
+    },
+    {
+      "order": 10,
+      "title": "Génération du site statique",
+      "description": "generate.py construit la page d'accueil index.html pour les 7 derniers jours de pronostics : il rejoue la stratégie de jeu (écart maximal de rel_prob[1]), génère l'article HTML avec le graphique Chart.js et les liens Canalturf (avec repli « Archives »), puis injecte le tout dans le template via {%MAINCASE%}. index_template.html définit le gabarit de la page d'accueil et la fonction JavaScript drawBarChart, tandis que race.html est une page statique expliquant pourquoi le pari placé est avantageux. L'ensemble du site repose sur Simple.css, les templates formant le système visuel du projet.",
+      "nodeIds": [
+        "file:canasson/site/generate.py",
+        "file:canasson/site/templates/index_template.html",
+        "file:canasson/site/templates/race.html"
+      ],
+      "languageLesson": "Ce projet n'utilise pas un moteur de templates (Jinja) mais une injection par marqueur : le gabarit contient {%MAINCASE%} et le code Python le remplace par le contenu généré. Ce motif plus léger est suffisant pour un site statique et facilite la prévisualisation des gabarits hors exécution."
+    },
+    {
+      "order": 11,
+      "title": "Publication GitHub Pages",
+      "description": "Dernière étape du pipeline : github.py publie les artefacts générés (index.html, bethistory.html, candle.png, pages annexes) sur mylittlecanasson.github.io. Le module clone le dépôt GitHub Pages, copie les fichiers, crée le commit « comment from python script » puis pousse, avec une gestion gracieuse des échecs pour ne jamais faire planter le pipeline. Il lit sa configuration (GIT_REPO_URL, SSH_DIR) depuis l'environnement défini dans .env.example.",
+      "nodeIds": [
+        "file:canasson/publish/github.py"
+      ],
+      "languageLesson": "La gestion gracieuse des erreurs consiste à envelopper les opérations fragiles (clone, push réseau) dans des blocs try/except larges qui loggent l'erreur et renvoient un statut d'échec non bloquant, plutôt que de laisser l'exception remonter et interrompre le pipeline."
+    },
+    {
+      "order": 12,
+      "title": "Infrastructure Docker",
+      "description": "Le chapitre final montre comment l'application est déployée : le Dockerfile part d'une image python:3.11-slim, installe git et openssh-client (requis pour le clone/push GitHub Pages du chapitre 11), installe le paquet via pip — ce qui enregistre le console script du chapitre 2 — puis lance le pipeline complet par ENTRYPOINT `canasson` avec la commande par défaut run. docker-compose.yml monte le volume ./data et le répertoire SSH en lecture seule, injecte GIT_REPO_URL, puis exécute `canasson run` avant l'arrêt propre du conteneur. .env.example documente les variables d'environnement requises pour le déploiement.",
+      "nodeIds": [
+        "service:Dockerfile",
+        "config:docker-compose.yml",
+        "config:.env.example"
+      ],
+      "languageLesson": "En Docker, l'ordre des couches compte pour le cache : copier pyproject.toml et installer les dépendances avant de copier le code source évite de reconstruire l'installation à chaque modification du code. Docker Compose orchestre le montage de volumes persistants (./data) et l'injection de variables d'environnement sensibles (clé SSH, GIT_REPO_URL) sans les graver dans l'image."
+    }
+  ]
+}

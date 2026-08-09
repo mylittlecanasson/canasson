@@ -1,0 +1,335 @@
+{
+  "name": "canasson",
+  "description": "Système de prédiction hippique (PMU) : collecte des données de course, apprentissage automatique, calcul du ROI et génération d'un site statique. Reconstruction structurée et testée de l'application Mylittlecanasson, exécutable via Docker Compose.",
+  "languages": [
+    "config",
+    "dockerfile",
+    "html",
+    "json",
+    "markdown",
+    "python",
+    "toml",
+    "unknown",
+    "yaml"
+  ],
+  "frameworks": [
+    "Docker",
+    "Docker Compose",
+    "pytest"
+  ],
+  "files": [
+    {
+      "path": ".env.example",
+      "language": "config",
+      "sizeLines": 9,
+      "fileCategory": "config"
+    },
+    {
+      "path": ".ua/.understandignore",
+      "language": "unknown",
+      "sizeLines": 75,
+      "fileCategory": "code"
+    },
+    {
+      "path": ".ua/config.json",
+      "language": "json",
+      "sizeLines": 1,
+      "fileCategory": "config"
+    },
+    {
+      "path": "Dockerfile",
+      "language": "dockerfile",
+      "sizeLines": 18,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "README.md",
+      "language": "markdown",
+      "sizeLines": 127,
+      "fileCategory": "docs"
+    },
+    {
+      "path": "canasson/__init__.py",
+      "language": "python",
+      "sizeLines": 10,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/cli.py",
+      "language": "python",
+      "sizeLines": 171,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/collect/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/collect/canalturf.py",
+      "language": "python",
+      "sizeLines": 76,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/collect/pmu.py",
+      "language": "python",
+      "sizeLines": 208,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/config.py",
+      "language": "python",
+      "sizeLines": 90,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/evaluate/__init__.py",
+      "language": "python",
+      "sizeLines": 16,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/evaluate/bethistory.py",
+      "language": "python",
+      "sizeLines": 29,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/evaluate/chart.py",
+      "language": "python",
+      "sizeLines": 67,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/evaluate/roi.py",
+      "language": "python",
+      "sizeLines": 210,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/model/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/model/features.py",
+      "language": "python",
+      "sizeLines": 177,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/model/predict.py",
+      "language": "python",
+      "sizeLines": 193,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/publish/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/publish/github.py",
+      "language": "python",
+      "sizeLines": 73,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/site/__init__.py",
+      "language": "python",
+      "sizeLines": 1,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/site/generate.py",
+      "language": "python",
+      "sizeLines": 119,
+      "fileCategory": "code"
+    },
+    {
+      "path": "canasson/site/templates/about.html",
+      "language": "html",
+      "sizeLines": 87,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "canasson/site/templates/bethistory-template.html",
+      "language": "html",
+      "sizeLines": 98,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "canasson/site/templates/contact.html",
+      "language": "html",
+      "sizeLines": 76,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "canasson/site/templates/index_template.html",
+      "language": "html",
+      "sizeLines": 113,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "canasson/site/templates/race.html",
+      "language": "html",
+      "sizeLines": 91,
+      "fileCategory": "markup"
+    },
+    {
+      "path": "docker-compose.yml",
+      "language": "yaml",
+      "sizeLines": 12,
+      "fileCategory": "infra"
+    },
+    {
+      "path": "pyproject.toml",
+      "language": "toml",
+      "sizeLines": 36,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tests/conftest.py",
+      "language": "python",
+      "sizeLines": 15,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tests/fixtures/response.json",
+      "language": "json",
+      "sizeLines": 60,
+      "fileCategory": "config"
+    },
+    {
+      "path": "tests/test_filters.py",
+      "language": "python",
+      "sizeLines": 133,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tests/test_schema.py",
+      "language": "python",
+      "sizeLines": 60,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tests/test_strategy.py",
+      "language": "python",
+      "sizeLines": 82,
+      "fileCategory": "code"
+    },
+    {
+      "path": "tests/test_template.py",
+      "language": "python",
+      "sizeLines": 39,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 35,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "moderate",
+  "importMap": {
+    ".env.example": [],
+    ".ua/.understandignore": [],
+    ".ua/config.json": [],
+    "Dockerfile": [],
+    "README.md": [],
+    "canasson/__init__.py": [],
+    "canasson/cli.py": [
+      "canasson/__init__.py",
+      "canasson/collect/__init__.py",
+      "canasson/collect/canalturf.py",
+      "canasson/collect/pmu.py",
+      "canasson/config.py",
+      "canasson/evaluate/__init__.py",
+      "canasson/model/__init__.py",
+      "canasson/model/predict.py",
+      "canasson/publish/__init__.py",
+      "canasson/site/__init__.py",
+      "canasson/site/generate.py"
+    ],
+    "canasson/collect/__init__.py": [],
+    "canasson/collect/canalturf.py": [
+      "canasson/__init__.py",
+      "canasson/config.py"
+    ],
+    "canasson/collect/pmu.py": [
+      "canasson/__init__.py",
+      "canasson/config.py"
+    ],
+    "canasson/config.py": [],
+    "canasson/evaluate/__init__.py": [
+      "canasson/evaluate/__init__.py",
+      "canasson/evaluate/bethistory.py",
+      "canasson/evaluate/chart.py",
+      "canasson/evaluate/roi.py"
+    ],
+    "canasson/evaluate/bethistory.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/evaluate/roi.py"
+    ],
+    "canasson/evaluate/chart.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/evaluate/roi.py"
+    ],
+    "canasson/evaluate/roi.py": [
+      "canasson/__init__.py",
+      "canasson/config.py"
+    ],
+    "canasson/model/__init__.py": [],
+    "canasson/model/features.py": [
+      "canasson/__init__.py",
+      "canasson/config.py"
+    ],
+    "canasson/model/predict.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/model/__init__.py",
+      "canasson/model/features.py"
+    ],
+    "canasson/publish/__init__.py": [],
+    "canasson/publish/github.py": [
+      "canasson/__init__.py",
+      "canasson/config.py"
+    ],
+    "canasson/site/__init__.py": [],
+    "canasson/site/generate.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/evaluate/roi.py"
+    ],
+    "canasson/site/templates/about.html": [],
+    "canasson/site/templates/bethistory-template.html": [],
+    "canasson/site/templates/contact.html": [],
+    "canasson/site/templates/index_template.html": [],
+    "canasson/site/templates/race.html": [],
+    "docker-compose.yml": [],
+    "pyproject.toml": [],
+    "tests/conftest.py": [],
+    "tests/fixtures/response.json": [],
+    "tests/test_filters.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/model/features.py"
+    ],
+    "tests/test_schema.py": [
+      "canasson/model/predict.py"
+    ],
+    "tests/test_strategy.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/evaluate/roi.py"
+    ],
+    "tests/test_template.py": [
+      "canasson/__init__.py",
+      "canasson/config.py",
+      "canasson/site/generate.py"
+    ]
+  }
+}

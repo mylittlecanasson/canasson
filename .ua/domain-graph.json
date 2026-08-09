@@ -1,0 +1,1559 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "canasson",
+    "languages": [
+      "config",
+      "dockerfile",
+      "html",
+      "json",
+      "markdown",
+      "python",
+      "toml"
+    ],
+    "frameworks": [
+      "Docker",
+      "Docker Compose",
+      "pytest"
+    ],
+    "description": "Système de prédiction hippique (PMU) : collecte des données de course, apprentissage automatique, calcul du ROI et génération d'un site statique. Reconstruction structurée et testée de l'application Mylittlecanasson, exécutable via Docker Compose.",
+    "analyzedAt": "2026-08-09T09:10:15.032Z",
+    "gitCommitHash": "66b5f2aad1fd3aa11a568daf58c5bf2ef086c15b"
+  },
+  "nodes": [
+    {
+      "id": "domain:collecte-donnees",
+      "type": "domain",
+      "name": "Collecte de Données",
+      "summary": "Ingère les données de course depuis l'API PMU (programme, participants, pronostics détaillés) et par scraping des archives Canalturf, puis sérialise le tout en CSV pour l'apprentissage et le test, avec une gestion gracieuse du throttling de l'API.",
+      "tags": [
+        "collect",
+        "api-pmu",
+        "scraping",
+        "data-pipeline",
+        "csv"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "Programme PMU",
+          "Participants",
+          "Pronostics détaillés",
+          "data_train/<date>.csv",
+          "data_test/<date>/query.csv",
+          "data_cturf/<date>/infos.json"
+        ],
+        "businessRules": [
+          "Seules les courses proposant un pari simple (typePari commençant par E_) sont conservées dans le jeu de données",
+          "Un CSV existant et non vide signale une collecte déjà complète ; un CSV à 0 octet signale un échec et sera re-tenté",
+          "L'API PMU throttle sporadiquement : chaque requête utilise des tentatives avec backoff et un repli sur un dict vide",
+          "Les virgules contenues dans les valeurs CSV sont remplacées par des points pour préserver la structure"
+        ],
+        "crossDomainInteractions": [
+          "Fournit les CSV d'apprentissage (60 jours) et la requête du jour au domaine Modèle & Prédiction",
+          "Les liens Canalturf (infos.json) sont consommés par le domaine Génération du Site pour les articles"
+        ]
+      }
+    },
+    {
+      "id": "domain:modele-prediction",
+      "type": "domain",
+      "name": "Modèle & Prédiction",
+      "summary": "Ingénierie de features et apprentissage d'un RandomForest sur l'historique collecté pour prédire la probabilité de classement de chaque cheval, normalisée par circuit (rel_prob, total_prob) et sérialisée dans response.json.",
+      "tags": [
+        "machine-learning",
+        "prediction",
+        "random-forest",
+        "feature-engineering",
+        "anti-leakage"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "RandomForest (max_depth=20)",
+          "features corrélées à ordreArrivee",
+          "cible top 3",
+          "response.json",
+          "heatmap.png",
+          "matrice de confusion"
+        ],
+        "businessRules": [
+          "Filtres métier : discipline PLAT, 8 à 12 partants déclarés, distance entre 1500 et 2100 m",
+          "Cible d'apprentissage : 1 si le cheval termine dans le top 3 (ordreArrivee < 3), 0 sinon",
+          "Les colonnes de résultats (RESULT_COLUMNS) sont retirées de la requête pour éviter toute fuite d'information",
+          "rel_prob est l'arrondi entier de prob/somme × 100 et total_prob la somme des prob par circuit"
+        ],
+        "crossDomainInteractions": [
+          "Consomme les données collectées (apprentissage et requête) du domaine Collecte de Données",
+          "Produit les pronostics response.json utilisés par l'Évaluation & ROI et la Génération du Site"
+        ]
+      }
+    },
+    {
+      "id": "domain:evaluation-roi",
+      "type": "domain",
+      "name": "Évaluation & ROI",
+      "summary": "Mesure la performance de la stratégie « CRAZY BET » : sélection de la course la plus sûre puis du cheval le plus qualitatif, mise de 5 € en simple placé, calcul du ROI réel à partir des rapports PMU et génération des rapports bethistory.html et candle.png.",
+      "tags": [
+        "roi",
+        "strategie-crazy-bet",
+        "api-pmu",
+        "evaluation",
+        "resultats"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entities": [
+          "DayResult",
+          "bethistory.html",
+          "candle.png",
+          "data_gain (cache des résultats PMU)",
+          "dividendes réels"
+        ],
+        "businessRules": [
+          "Course jouée : celle présentant l'écart de rel_prob[1] maximal entre le cheval n°1 et le cheval n°2",
+          "Cheval joué : le plus qualitatif de la course choisie, soit celui au prob[1] maximal",
+          "Mise de 5 € en simple placé par jour ; le ROI est exprimé en centimes",
+          "Les jours sans pronostics comptent comme une perte ; une course non terminée renvoie un mapping de dividendes vide"
+        ],
+        "crossDomainInteractions": [
+          "Consomme les pronostics response.json produits par le Modèle & Prédiction",
+          "Interroge directement l'API PMU pour obtenir les rapports réels (performances, rapports définitifs, incidents)",
+          "Produit les rapports de paris publiés sur le site"
+        ]
+      }
+    },
+    {
+      "id": "domain:generation-site",
+      "type": "domain",
+      "name": "Génération du Site",
+      "summary": "Génère le site statique de pronostics : page d'accueil index.html présentant les 7 derniers jours avec course à jouer, graphiques Chart.js et liens Canalturf, par injection du contenu dans les templates HTML via le marqueur {%MAINCASE%}.",
+      "tags": [
+        "site",
+        "generation",
+        "html",
+        "templates",
+        "chartjs"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": [
+          "index.html",
+          "templates (index_template.html, about, race, contact, bethistory-template.html)",
+          "articles HTML Chart.js",
+          "liens Canalturf"
+        ],
+        "businessRules": [
+          "La page d'accueil affiche les 7 derniers jours de pronostics, du plus récent au plus ancien",
+          "Un article présente la course choisie, le commentaire, le canvas Chart.js des rel_prob[1] et met en évidence le cheval le plus qualitatif",
+          "Le lien Canalturf affiche un repli « Archives » quand le pronostic direct est absent",
+          "Toutes les pages portent une bannière de jeu responsable et un bouton de don PayPal"
+        ],
+        "crossDomainInteractions": [
+          "Consomme response.json (Modèle & Prédiction) et infos.json (Collecte de Données)",
+          "Produit index.html et les pages annexes publiés par le domaine Publication & Déploiement"
+        ]
+      }
+    },
+    {
+      "id": "domain:publication-deploiement",
+      "type": "domain",
+      "name": "Publication & Déploiement",
+      "summary": "Diffuse le site généré sur GitHub Pages (mylittlecanasson.github.io) par des opérations git (clone, copie des artefacts, commit, push) et conteneurise le pipeline complet via Docker Compose pour une exécution automatisée et reproductible.",
+      "tags": [
+        "publication",
+        "github-pages",
+        "git",
+        "docker",
+        "deploiement"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entities": [
+          "mylittlecanasson.github.io",
+          "artefacts (index.html, bethistory.html, candle.png)",
+          "pages annexes (about, race, contact)",
+          "Dockerfile",
+          "docker-compose.yml",
+          "clé SSH"
+        ],
+        "businessRules": [
+          "Le commit de publication conserve le message historique « comment from python script »",
+          "Chaque étape (clone, copie, push) échoue gracieusement pour ne jamais faire planter le pipeline",
+          "GIT_REPO_URL et SSH_DIR sont injectés par l'environnement Docker Compose, sans être gravés dans l'image",
+          "La clé SSH est montée en lecture seule dans le conteneur"
+        ],
+        "crossDomainInteractions": [
+          "Publie les artefacts générés par la Génération du Site (index.html, pages annexes)",
+          "Publie les rapports d'évaluation (bethistory.html, candle.png) produits par l'Évaluation & ROI"
+        ]
+      }
+    },
+    {
+      "id": "flow:collecte-donnees-pmu",
+      "type": "flow",
+      "name": "Collecte des données PMU",
+      "summary": "Télécharge le programme des réunions et courses auprès de l'API PMU, récupère les participants et pronostics détaillés de chaque course conservée, puis sérialise le tout en CSV pour l'apprentissage (60 jours) et la requête du jour.",
+      "tags": [
+        "api-pmu",
+        "csv",
+        "historique",
+        "requete",
+        "resilience"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "canasson collect (collect.pmu.run)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:collecte-liens-canalturf",
+      "type": "flow",
+      "name": "Collecte des liens Canalturf",
+      "summary": "Scrape les archives de canalturf.com sur 60 jours pour extraire les liens « Pronos » et « Résultats » de chaque réunion et course, avec cache local des pages HTML, et les stocke dans infos.json par date.",
+      "tags": [
+        "scraping",
+        "beautifulsoup",
+        "liens",
+        "cache",
+        "archives"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "canasson collect (collect.canalturf.run)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:entrainement-prediction",
+      "type": "flow",
+      "name": "Entraînement du modèle & prédiction",
+      "summary": "Charge l'historique d'apprentissage et la requête du jour, applique les filtres métier, encode et sélectionne les features, entraîne un RandomForest, prédit la probabilité de victoire de chaque cheval et écrit response.json normalisé par circuit.",
+      "tags": [
+        "machine-learning",
+        "entrainement",
+        "inference",
+        "random-forest",
+        "response-json"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "canasson predict (predict.run)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:backtest-historique",
+      "type": "flow",
+      "name": "Backtest sans fuite d'information",
+      "summary": "Rejoue la prédiction sur les jours passés en n'utilisant que les données disponibles à la date de prédiction, pour valider le comportement du modèle et reconstruire l'historique d'évaluation avant mise en production.",
+      "tags": [
+        "backtest",
+        "anti-leakage",
+        "backfill",
+        "rerun"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "canasson backfill (cmd_backfill) puis canasson rerun",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:calcul-roi-journalier",
+      "type": "flow",
+      "name": "Calcul du ROI journalier",
+      "summary": "Pour chaque jour disposant de pronostics, applique la stratégie « CRAZY BET » : sélectionne la course la plus sûre, choisit le cheval le plus qualitatif, le joue en simple placé de 5 € et calcule le gain, le remboursement ou la perte réels à partir des rapports PMU.",
+      "tags": [
+        "roi",
+        "strategie-crazy-bet",
+        "simple-place",
+        "resultats-pmu",
+        "dayresult"
+      ],
+      "complexity": "complex",
+      "domainMeta": {
+        "entryPoint": "canasson evaluate (evaluate.run)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:generation-rapports-paris",
+      "type": "flow",
+      "name": "Génération des rapports de paris",
+      "summary": "Régénère les artefacts de suivi de la stratégie : bethistory.html (tableau des chevaux joués, gains et URLs des circuits, plus récent en premier) et candle.png (chandeliers journaliers verts/rouges et courbe du ROI cumulé).",
+      "tags": [
+        "rapport",
+        "bethistory",
+        "candle",
+        "matplotlib",
+        "visualisation"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "canasson evaluate (evaluate.run)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:generation-page-accueil",
+      "type": "flow",
+      "name": "Génération de la page d'accueil",
+      "summary": "Régénère index.html : parcourt les 7 derniers jours de pronostics, construit pour chacun un article HTML avec graphique Chart.js et liens Canalturf, puis injecte le tout dans le template via le marqueur {%MAINCASE%}.",
+      "tags": [
+        "index-html",
+        "articles",
+        "chartjs",
+        "template",
+        "pronostics"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "canasson site (site.generate.run)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:publication-github-pages",
+      "type": "flow",
+      "name": "Publication GitHub Pages",
+      "summary": "Clone le dépôt mylittlecanasson.github.io, copie les artefacts générés (index.html, bethistory.html, candle.png, pages annexes), commite avec le message historique puis pousse, chaque étape échouant gracieusement.",
+      "tags": [
+        "git",
+        "github-pages",
+        "clone",
+        "push",
+        "artefacts"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "canasson publish (cmd_publish, option --no-push)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "flow:orchestration-pipeline",
+      "type": "flow",
+      "name": "Orchestration du pipeline complet",
+      "summary": "Enchaîne les étapes collect → predict → evaluate → site → publish pour une exécution automatisée, déclenchée par défaut au démarrage du conteneur Docker, avec configuration de l'environnement et montage des volumes de données.",
+      "tags": [
+        "pipeline",
+        "orchestration",
+        "cli",
+        "docker",
+        "entry-point"
+      ],
+      "complexity": "moderate",
+      "domainMeta": {
+        "entryPoint": "canasson run (docker compose up)",
+        "entryType": "cli"
+      }
+    },
+    {
+      "id": "step:collecte-donnees-pmu:verifier-cache",
+      "type": "step",
+      "name": "Vérifier la collecte déjà effectuée",
+      "summary": "Détecte si la collecte d'un jour est déjà complète (fichier CSV existant et non vide) afin d'éviter les téléchargements redondants ; un CSV à 0 octet est re-tenté.",
+      "tags": [
+        "cache",
+        "validation",
+        "collect"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-donnees-pmu:telecharger-programme",
+      "type": "step",
+      "name": "Télécharger le programme",
+      "summary": "Récupère le programme d'une journée via un GET JSON avec tentatives et backoff face au throttling de l'API PMU ; un corps 204 est journalisé en DEBUG.",
+      "tags": [
+        "api",
+        "http",
+        "resilience"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-donnees-pmu:recuperer-details-courses",
+      "type": "step",
+      "name": "Récupérer participants et pronostics",
+      "summary": "Pour chaque réunion et course conservée, télécharge les participants et les pronostics détaillés puis fusionne les données de la journée.",
+      "tags": [
+        "api",
+        "participants",
+        "pronostics",
+        "fusion"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-donnees-pmu:filtrer-courses-jouables",
+      "type": "step",
+      "name": "Filtrer les courses jouables",
+      "summary": "Ne conserve que les courses proposant un pari simple (typePari commençant par E_), condition de conservation de la course dans le jeu de données.",
+      "tags": [
+        "filtre",
+        "validation",
+        "pari-simple"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-donnees-pmu:aplatir-normaliser",
+      "type": "step",
+      "name": "Aplatir et normaliser le JSON",
+      "summary": "Aplatit récursivement les objets JSON en clés plates préfixées par le chemin et complète chaque enregistrement avec toutes les clés vues pour obtenir des colonnes homogènes.",
+      "tags": [
+        "json",
+        "normalisation",
+        "serialisation"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-donnees-pmu:ecrire-csv",
+      "type": "step",
+      "name": "Écrire les données en CSV",
+      "summary": "Sérialise la liste de dictionnaires en CSV (les virgules des valeurs sont remplacées par des points) vers data_train/<date>.csv ou data_test/<date>/query.csv.",
+      "tags": [
+        "csv",
+        "serialisation",
+        "ecriture"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-liens-canalturf:parcourir-archives",
+      "type": "step",
+      "name": "Parcourir les archives",
+      "summary": "Parcourt les 60 derniers jours (de demain à 59 jours en arrière) pour couvrir l'ensemble de l'historique d'apprentissage.",
+      "tags": [
+        "archives",
+        "parcours",
+        "dates"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/canalturf.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-liens-canalturf:telecharger-pages",
+      "type": "step",
+      "name": "Télécharger les pages d'archives",
+      "summary": "Télécharge les pages HTML d'archives avec un cache local dans data_cturf/<date>/ pour éviter de re-télécharger les pages déjà vues.",
+      "tags": [
+        "scraping",
+        "cache",
+        "html"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/canalturf.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-liens-canalturf:extraire-liens",
+      "type": "step",
+      "name": "Extraire les liens Pronos / Résultats",
+      "summary": "Analyse une page d'archives avec BeautifulSoup et extrait, pour chaque réunion (rX) et course (cY), les liens pronos et résultats.",
+      "tags": [
+        "scraping",
+        "parsing",
+        "beautifulsoup"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/collect/canalturf.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:collecte-liens-canalturf:ecrire-infos",
+      "type": "step",
+      "name": "Écrire infos.json par jour",
+      "summary": "Écrit les liens extraits dans data_cturf/<date>/infos.json pour chaque jour traité.",
+      "tags": [
+        "json",
+        "ecriture",
+        "liens"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/canalturf.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:charger-donnees",
+      "type": "step",
+      "name": "Charger les données",
+      "summary": "Charge et concatène les 60 derniers jours d'apprentissage depuis DATA_TRAIN_DIR, ainsi que la requête du jour en retirant ses colonnes de résultats.",
+      "tags": [
+        "data-loading",
+        "concat",
+        "anti-leakage"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:filtrer-courses",
+      "type": "step",
+      "name": "Appliquer les filtres métier",
+      "summary": "Filtre le DataFrame selon les règles métier : discipline PLAT, 8 à 12 partants déclarés, distance entre 1500 et 2100 m, avec conversion numérique des colonnes.",
+      "tags": [
+        "filtre",
+        "preprocessing",
+        "regles-metier"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:construire-cible",
+      "type": "step",
+      "name": "Construire la cible d'apprentissage",
+      "summary": "Construit la cible binaire : 1 si le cheval est arrivé dans le top 3 (ordreArrivee < 3), 0 sinon.",
+      "tags": [
+        "cible",
+        "labeling",
+        "top-3"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:encoder-colonnes",
+      "type": "step",
+      "name": "Encoder les colonnes catégorielles",
+      "summary": "Encode les colonnes catégorielles communes entre l'apprentissage et la requête via LabelEncoder, en gérant les colonnes présentes dans un seul des deux jeux.",
+      "tags": [
+        "encoding",
+        "label-encoder",
+        "preprocessing"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:selectionner-features",
+      "type": "step",
+      "name": "Sélectionner les features pertinentes",
+      "summary": "Sélectionne les features par corrélation à ordreArrivee : conserve les colonnes corrélées au moins autant que nom, exclut paris_* et incident_*, et garantit la présence de nom.",
+      "tags": [
+        "feature-selection",
+        "correlation",
+        "preprocessing"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:entrainer-forest",
+      "type": "step",
+      "name": "Entraîner le RandomForest",
+      "summary": "Entraîne le RandomForest (max_depth=20) sur l'historique, évalue la performance sur un split 80/20 et sauvegarde la matrice de confusion.",
+      "tags": [
+        "random-forest",
+        "entrainement",
+        "evaluation-split"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:predire-probabilites",
+      "type": "step",
+      "name": "Prédire les probabilités par cheval",
+      "summary": "Applique le scaler et les encoders cheval par cheval, prédit la probabilité via le RandomForest puis reconstruit la structure du schéma response.json.",
+      "tags": [
+        "inference",
+        "prediction",
+        "serialisation"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:entrainement-prediction:normaliser-ecrire",
+      "type": "step",
+      "name": "Normaliser et écrire response.json",
+      "summary": "Normalise les probabilités de chaque cheval sur la somme du circuit pour produire rel_prob et total_prob, génère la heatmap de corrélation et écrit data_test/<date>/response.json.",
+      "tags": [
+        "normalisation",
+        "heatmap",
+        "ecriture"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/predict.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:backtest-historique:etendre-historique",
+      "type": "step",
+      "name": "Étendre l'historique d'apprentissage",
+      "summary": "Étend l'historique d'apprentissage jusqu'à la date de référence du backtest, en acceptant une date de référence pour load_train.",
+      "tags": [
+        "backtest",
+        "historique",
+        "ref-date"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/model/features.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:backtest-historique:telecharger-requete",
+      "type": "step",
+      "name": "Télécharger la requête du jour passé",
+      "summary": "Télécharge le programme d'une date précise vers data_test/<date>/query.csv pour rejouer la prédiction d'un jour passé.",
+      "tags": [
+        "api",
+        "query",
+        "telechargement"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/collect/pmu.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:backtest-historique:predire-jour",
+      "type": "step",
+      "name": "Prédire le jour passé",
+      "summary": "Prédit chaque jour passé en ne gardant que les données disponibles au moment de la prédiction, sans fuite d'information vers le modèle.",
+      "tags": [
+        "prediction",
+        "anti-leakage",
+        "backfill"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:backtest-historique:recalculer-roi",
+      "type": "step",
+      "name": "Recalculer le ROI du jour",
+      "summary": "Rejoue la prédiction d'une date passée puis recalcule le ROI, pour reconstruire l'historique d'évaluation (remplace l'ancien rerunall.sh).",
+      "tags": [
+        "roi",
+        "rerun",
+        "evaluation"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:charger-pronostics",
+      "type": "step",
+      "name": "Charger les pronostics du jour",
+      "summary": "Charge response.json du jour contenant les probabilités par cheval (rel_prob, total_prob) issues de la prédiction.",
+      "tags": [
+        "pronostics",
+        "chargement",
+        "response-json"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:choisir-course",
+      "type": "step",
+      "name": "Choisir la course à jouer",
+      "summary": "Sélectionne la course présentant l'écart de rel_prob[1] maximal entre le cheval n°1 et le cheval n°2 dans les pronostics du jour, jugée la plus sûre.",
+      "tags": [
+        "strategie",
+        "selection-course",
+        "pronostics"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:choisir-cheval",
+      "type": "step",
+      "name": "Choisir le cheval le plus qualitatif",
+      "summary": "Sélectionne dans la course choisie le cheval le plus qualitatif, soit celui au prob[1] maximal.",
+      "tags": [
+        "strategie",
+        "selection-cheval",
+        "pronostics"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:recuperer-resultats",
+      "type": "step",
+      "name": "Récupérer les résultats réels",
+      "summary": "Interroge l'API PMU pour les résultats réels du jour (performances détaillées, rapports définitifs, incidents) avec un cache local dans data_gain.",
+      "tags": [
+        "api-pmu",
+        "resultats",
+        "cache"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:extraire-dividendes",
+      "type": "step",
+      "name": "Extraire les dividendes par cheval",
+      "summary": "Construit le mapping {nomCheval: dividende} d'une course à partir des résultats réels ; renvoie un dict vide si la course n'est pas terminée.",
+      "tags": [
+        "dividendes",
+        "parsing",
+        "resultats"
+      ],
+      "complexity": "complex",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:calculer-gain-perte",
+      "type": "step",
+      "name": "Calculer le gain ou la perte du jour",
+      "summary": "Joue le cheval sélectionné en simple placé de 5 € et calcule le gain, le remboursement ou la perte du jour, exprimé en centimes dans un DayResult.",
+      "tags": [
+        "roi",
+        "simple-place",
+        "dayresult"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:calcul-roi-journalier:parcourir-jours",
+      "type": "step",
+      "name": "Évaluer tous les jours",
+      "summary": "Évalue tous les jours disposant d'un response.json en ordre chronologique et renvoie la liste des DayResult pour la génération des rapports.",
+      "tags": [
+        "parcours",
+        "evaluation",
+        "liste"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/evaluate/roi.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-rapports-paris:rendre-bethistory",
+      "type": "step",
+      "name": "Remplir le template bethistory",
+      "summary": "Injecte le tableau des chevaux joués, gains et URLs des circuits dans le template via le marqueur {%MAINCASE%}, les jours les plus récents en premier.",
+      "tags": [
+        "template",
+        "bethistory",
+        "injection"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/evaluate/bethistory.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-rapports-paris:tracer-chandelier",
+      "type": "step",
+      "name": "Tracer le chandelier du ROI",
+      "summary": "Construit le DataFrame des chandeliers journaliers (vert pour un gain, rouge pour une perte sur une base de 5 €) et la courbe du ROI cumulé avec matplotlib.",
+      "tags": [
+        "visualisation",
+        "matplotlib",
+        "candle"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/evaluate/chart.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-rapports-paris:ecrire-artefacts",
+      "type": "step",
+      "name": "Enregistrer les rapports",
+      "summary": "Écrit bethistory.html et candle.png dans data_test pour être publiés sur le site.",
+      "tags": [
+        "ecriture",
+        "artefacts",
+        "html",
+        "png"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/evaluate/chart.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-page-accueil:parcourir-jours",
+      "type": "step",
+      "name": "Parcourir les répertoires de dates",
+      "summary": "Parcourt les répertoires de dates du plus récent au plus ancien pour ne retenir que les derniers jours de pronostics.",
+      "tags": [
+        "parcours",
+        "dates",
+        "pronostics"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-page-accueil:charger-pronostics",
+      "type": "step",
+      "name": "Charger les pronostics et liens",
+      "summary": "Charge response.json et infos.json de chaque jour pour alimenter la construction des articles.",
+      "tags": [
+        "chargement",
+        "response-json",
+        "infos-json"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-page-accueil:construire-article",
+      "type": "step",
+      "name": "Construire l'article HTML du jour",
+      "summary": "Construit le bloc HTML d'un jour : titre, course choisie, commentaire, canvas Chart.js des rel_prob[1] et mise en évidence du cheval le plus qualitatif (cribles).",
+      "tags": [
+        "html",
+        "chartjs",
+        "article"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-page-accueil:lier-canalturf",
+      "type": "step",
+      "name": "Générer les liens Canalturf",
+      "summary": "Produit les liens vers les pronostics Canalturf de chaque course avec un repli « Archives » quand le lien direct est absent.",
+      "tags": [
+        "liens",
+        "canalturf",
+        "repli"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:generation-page-accueil:injecter-template",
+      "type": "step",
+      "name": "Injecter dans le template",
+      "summary": "Concatène les articles générés et remplace le marqueur {%MAINCASE%} du template d'accueil avant d'écrire l'artefact index.html.",
+      "tags": [
+        "template",
+        "injection",
+        "index-html"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/site/generate.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:publication-github-pages:preparer-repertoires",
+      "type": "step",
+      "name": "Préparer l'environnement de publication",
+      "summary": "Crée les répertoires de travail et lit la configuration de publication (GIT_REPO_URL, SSH_DIR) depuis l'environnement.",
+      "tags": [
+        "preparation",
+        "configuration",
+        "git"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:publication-github-pages:cloner-depot",
+      "type": "step",
+      "name": "Cloner le dépôt GitHub Pages",
+      "summary": "Clone le dépôt mylittlecanasson.github.io dans le worktree pour y déposer les artefacts générés.",
+      "tags": [
+        "git",
+        "clone",
+        "github-pages"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:publication-github-pages:copier-artefacts",
+      "type": "step",
+      "name": "Copier les artefacts générés",
+      "summary": "Copie index.html, bethistory.html, candle.png et les pages annexes (about, race, contact) depuis les templates vers le worktree du dépôt.",
+      "tags": [
+        "artefacts",
+        "copie",
+        "fichiers"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:publication-github-pages:commiter-pousser",
+      "type": "step",
+      "name": "Commiter et pousser",
+      "summary": "Ajoute tous les changements, commite avec le message historique « comment from python script » puis pousse vers la remote origin.",
+      "tags": [
+        "git",
+        "commit",
+        "push"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:publication-github-pages:gerer-echecs",
+      "type": "step",
+      "name": "Gérer gracieusement les échecs",
+      "summary": "Absorbe les erreurs de clone et de push dans des blocs try/except qui loggent l'erreur et renvoient un statut non bloquant, pour ne jamais interrompre le pipeline.",
+      "tags": [
+        "resilience",
+        "gestion-erreurs",
+        "non-bloquant"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/publish/github.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:orchestration-pipeline:configurer-environnement",
+      "type": "step",
+      "name": "Configurer l'environnement",
+      "summary": "Configure la journalisation (DEBUG en mode verbose, bruit des dépendances masqué) et s'assure que les répertoires de données runtime existent.",
+      "tags": [
+        "logging",
+        "configuration",
+        "repertoires"
+      ],
+      "complexity": "simple",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:orchestration-pipeline:executer-pipeline",
+      "type": "step",
+      "name": "Exécuter le pipeline complet",
+      "summary": "Enchaîne les sous-commandes dans l'ordre collect → predict → evaluate → site → publish (sauf avec --no-publish).",
+      "tags": [
+        "pipeline",
+        "orchestration",
+        "sequence"
+      ],
+      "complexity": "moderate",
+      "filePath": "canasson/cli.py",
+      "lineRange": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "step:orchestration-pipeline:conteneuriser",
+      "type": "step",
+      "name": "Conteneuriser l'exécution",
+      "summary": "Monte le volume ./data et le répertoire SSH en lecture seule, injecte GIT_REPO_URL et lance le pipeline au démarrage du conteneur via Docker Compose.",
+      "tags": [
+        "docker",
+        "volumes",
+        "environnement"
+      ],
+      "complexity": "simple",
+      "filePath": "docker-compose.yml",
+      "lineRange": [
+        0,
+        0
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "domain:collecte-donnees",
+      "target": "flow:collecte-donnees-pmu",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:collecte-donnees",
+      "target": "flow:collecte-liens-canalturf",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:modele-prediction",
+      "target": "flow:entrainement-prediction",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:modele-prediction",
+      "target": "flow:backtest-historique",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:evaluation-roi",
+      "target": "flow:calcul-roi-journalier",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:evaluation-roi",
+      "target": "flow:generation-rapports-paris",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:generation-site",
+      "target": "flow:generation-page-accueil",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:publication-deploiement",
+      "target": "flow:publication-github-pages",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "domain:publication-deploiement",
+      "target": "flow:orchestration-pipeline",
+      "type": "contains_flow",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "flow:collecte-donnees-pmu",
+      "target": "step:collecte-donnees-pmu:verifier-cache",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:collecte-donnees-pmu",
+      "target": "step:collecte-donnees-pmu:telecharger-programme",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:collecte-donnees-pmu",
+      "target": "step:collecte-donnees-pmu:recuperer-details-courses",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:collecte-donnees-pmu",
+      "target": "step:collecte-donnees-pmu:filtrer-courses-jouables",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:collecte-donnees-pmu",
+      "target": "step:collecte-donnees-pmu:aplatir-normaliser",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:collecte-donnees-pmu",
+      "target": "step:collecte-donnees-pmu:ecrire-csv",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:collecte-liens-canalturf",
+      "target": "step:collecte-liens-canalturf:parcourir-archives",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:collecte-liens-canalturf",
+      "target": "step:collecte-liens-canalturf:telecharger-pages",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:collecte-liens-canalturf",
+      "target": "step:collecte-liens-canalturf:extraire-liens",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:collecte-liens-canalturf",
+      "target": "step:collecte-liens-canalturf:ecrire-infos",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:charger-donnees",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:filtrer-courses",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:construire-cible",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:encoder-colonnes",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:selectionner-features",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:entrainer-forest",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:predire-probabilites",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:entrainement-prediction",
+      "target": "step:entrainement-prediction:normaliser-ecrire",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.8
+    },
+    {
+      "source": "flow:backtest-historique",
+      "target": "step:backtest-historique:etendre-historique",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:backtest-historique",
+      "target": "step:backtest-historique:telecharger-requete",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:backtest-historique",
+      "target": "step:backtest-historique:predire-jour",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:backtest-historique",
+      "target": "step:backtest-historique:recalculer-roi",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:charger-pronostics",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:choisir-course",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:choisir-cheval",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:recuperer-resultats",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:extraire-dividendes",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:calculer-gain-perte",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "flow:calcul-roi-journalier",
+      "target": "step:calcul-roi-journalier:parcourir-jours",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "flow:generation-rapports-paris",
+      "target": "step:generation-rapports-paris:rendre-bethistory",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:generation-rapports-paris",
+      "target": "step:generation-rapports-paris:tracer-chandelier",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:generation-rapports-paris",
+      "target": "step:generation-rapports-paris:ecrire-artefacts",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:generation-page-accueil",
+      "target": "step:generation-page-accueil:parcourir-jours",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:generation-page-accueil",
+      "target": "step:generation-page-accueil:charger-pronostics",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:generation-page-accueil",
+      "target": "step:generation-page-accueil:construire-article",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:generation-page-accueil",
+      "target": "step:generation-page-accueil:lier-canalturf",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:generation-page-accueil",
+      "target": "step:generation-page-accueil:injecter-template",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:publication-github-pages",
+      "target": "step:publication-github-pages:preparer-repertoires",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:publication-github-pages",
+      "target": "step:publication-github-pages:cloner-depot",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:publication-github-pages",
+      "target": "step:publication-github-pages:copier-artefacts",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "flow:publication-github-pages",
+      "target": "step:publication-github-pages:commiter-pousser",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.4
+    },
+    {
+      "source": "flow:publication-github-pages",
+      "target": "step:publication-github-pages:gerer-echecs",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.5
+    },
+    {
+      "source": "flow:orchestration-pipeline",
+      "target": "step:orchestration-pipeline:configurer-environnement",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.1
+    },
+    {
+      "source": "flow:orchestration-pipeline",
+      "target": "step:orchestration-pipeline:executer-pipeline",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.2
+    },
+    {
+      "source": "flow:orchestration-pipeline",
+      "target": "step:orchestration-pipeline:conteneuriser",
+      "type": "flow_step",
+      "direction": "forward",
+      "weight": 0.3
+    },
+    {
+      "source": "domain:collecte-donnees",
+      "target": "domain:modele-prediction",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Fournit les CSV d'apprentissage (60 jours) et la requête du jour (query.csv) consommés par l'entraînement et la prédiction.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:modele-prediction",
+      "target": "domain:evaluation-roi",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Produit les pronostics response.json (rel_prob, total_prob) à partir desquels la stratégie CRAZY BET sélectionne la course et le cheval.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:modele-prediction",
+      "target": "domain:generation-site",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Les probabilités normalisées de response.json alimentent les articles et les graphiques Chart.js de la page d'accueil.",
+      "weight": 0.4
+    },
+    {
+      "source": "domain:collecte-donnees",
+      "target": "domain:generation-site",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Les liens Canalturf extraits (infos.json) sont intégrés dans les articles du site avec repli « Archives ».",
+      "weight": 0.4
+    },
+    {
+      "source": "domain:evaluation-roi",
+      "target": "domain:generation-site",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Les DayResult alimentent l'historique des paris (bethistory.html) présenté sur le site.",
+      "weight": 0.3
+    },
+    {
+      "source": "domain:generation-site",
+      "target": "domain:publication-deploiement",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Les artefacts générés (index.html, pages annexes) sont copiés vers le dépôt GitHub Pages.",
+      "weight": 0.6
+    },
+    {
+      "source": "domain:evaluation-roi",
+      "target": "domain:publication-deploiement",
+      "type": "cross_domain",
+      "direction": "forward",
+      "description": "Les rapports bethistory.html et candle.png sont copiés vers le dépôt publié.",
+      "weight": 0.3
+    }
+  ],
+  "layers": [],
+  "tour": []
+}
